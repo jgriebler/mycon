@@ -1,4 +1,4 @@
-use super::{Value, SPACE};
+use data::{Value, SPACE};
 
 const CHUNK_SHIFT: usize = 4;
 const CHUNK_SHIFT_TOTAL: usize = 7 * CHUNK_SHIFT;

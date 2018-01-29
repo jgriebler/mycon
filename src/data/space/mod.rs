@@ -1,5 +1,6 @@
 mod tree;
 
+use super::{Value, SPACE};
 use self::tree::*;
 
 // const CACHE_SIZE: usize = 4;
