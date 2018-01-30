@@ -1,6 +1,6 @@
 mod tree;
 
-use super::{Value, SPACE};
+use super::{Value, Point, Delta, SPACE};
 use self::tree::*;
 
 // const CACHE_SIZE: usize = 4;
@@ -20,14 +20,14 @@ impl Space {
         }
     }
 
-    pub fn get(&self, x: i32, y: i32) -> Value {
+    pub fn get(&self, Point { x, y }: Point) -> Value {
         self.tree.get(x, y)
     }
 
-    pub fn set(&mut self, x: i32, y: i32, value: Value) {
+    pub fn set(&mut self, Point { x, y }: Point, value: Value) {
         self.tree.set(x, y, value);
         if value != SPACE {
-            self.bounds.update(x, y);
+            self.bounds.update(Point { x, y });
         }
     }
 
@@ -37,6 +37,35 @@ impl Space {
 
     pub fn max(&self) -> (i32, i32) {
         self.bounds.max()
+    }
+
+    pub fn maybe_wrap(&self, Point { x, y }: Point, Delta { dx, dy }: Delta) -> Option<Point> {
+        use std::cmp::min;
+
+        let (min_x, min_y) = self.bounds.min();
+        let (max_x, max_y) = self.bounds.max();
+
+        let (last_x, sx) = if dx >= 0 {
+            (x > max_x - dx, x - min_x)
+        } else {
+            (x < min_x - dx, max_x - x)
+        };
+
+        let (last_y, sy) = if dy >= 0 {
+            (y > max_y - dy, y - min_y)
+        } else {
+            (y < min_y - dy, max_y - y)
+        };
+
+        if last_x || last_y {
+            let nx = sx / dx;
+            let ny = sy / dy;
+            let n = min(nx, ny);
+
+            Some(Point { x, y } - Delta { dx, dy } * n)
+        } else {
+            None
+        }
     }
 }
 
@@ -52,7 +81,7 @@ impl<'a> From<&'a str> for Space {
                 x = 0;
                 y += 1;
             } else {
-                space.set(x, y, Value::from(c as i32));
+                space.set(Point { x, y }, Value::from(c as i32));
                 x += 1;
             }
         }
@@ -61,7 +90,7 @@ impl<'a> From<&'a str> for Space {
     }
 }
 
-struct Bounds {
+pub struct Bounds {
     min_x: i32,
     min_y: i32,
     max_x: i32,
@@ -78,7 +107,7 @@ impl Bounds {
         }
     }
 
-    fn update(&mut self, x: i32, y: i32) {
+    fn update(&mut self, Point { x, y }: Point) {
         if x < self.min_x {
             self.min_x = x;
         } else if x > self.max_x {

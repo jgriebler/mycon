@@ -2,6 +2,7 @@ use super::Value;
 
 type Stack = Vec<Value>;
 
+#[derive(Clone)]
 pub struct StackStack {
     stacks: Vec<Stack>,
 }
@@ -30,21 +31,6 @@ impl StackStack {
             Some(v) => v,
             None    => 0,
         }
-    }
-
-    pub fn duplicate(&mut self) {
-        let v = self.pop();
-
-        self.push(v);
-        self.push(v);
-    }
-
-    pub fn swap(&mut self) {
-        let v = self.pop();
-        let w = self.pop();
-
-        self.push(v);
-        self.push(w);
     }
 
     pub fn clear(&mut self) {

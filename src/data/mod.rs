@@ -1,7 +1,7 @@
 pub mod space;
 pub mod stack;
 
-use std::ops::Add;
+use std::ops::{Add, AddAssign, Sub, SubAssign, Mul, MulAssign};
 
 pub const SPACE: i32 = ' ' as i32;
 
@@ -19,13 +19,79 @@ pub struct Delta {
     pub dy: i32,
 }
 
+impl Delta {
+    pub fn reverse(&self) -> Delta {
+        Delta {
+            dx: -self.dx,
+            dy: -self.dy,
+        }
+    }
+
+    pub fn rotate_left(&self) -> Delta {
+        Delta {
+            dx: self.dy,
+            dy: -self.dx,
+        }
+    }
+
+    pub fn rotate_right(&self) -> Delta {
+        Delta {
+            dx: -self.dy,
+            dy: self.dx,
+        }
+    }
+}
+
 impl Add<Delta> for Point {
     type Output = Point;
 
-    fn add(self, del: Delta) -> Point {
+    fn add(self, delta: Delta) -> Point {
         Point {
-            x: self.x + del.dx,
-            y: self.y + del.dy,
+            x: self.x + delta.dx,
+            y: self.y + delta.dy,
         }
+    }
+}
+
+impl AddAssign<Delta> for Point {
+    fn add_assign(&mut self, delta: Delta) {
+        self.x += delta.dx;
+        self.y += delta.dy;
+    }
+}
+
+impl Sub<Delta> for Point {
+    type Output = Point;
+
+    fn sub(self, delta: Delta) -> Point {
+        Point {
+            x: self.x - delta.dx,
+            y: self.y - delta.dy,
+        }
+    }
+}
+
+impl SubAssign<Delta> for Point {
+    fn sub_assign(&mut self, delta: Delta) {
+        self.x -= delta.dx;
+        self.y -= delta.dy;
+    }
+}
+
+impl Mul<i32> for Delta {
+    type Output = Delta;
+
+    fn mul(self, n: i32) -> Delta {
+        Delta {
+            dx: self.dx * n,
+            dy: self.dy * n,
+        }
+    }
+}
+
+impl MulAssign<i32> for Delta {
+    fn mul_assign(&mut self, n: i32) {
+        self.dx *= n;
+        self.dy *= n;
     }
 }
