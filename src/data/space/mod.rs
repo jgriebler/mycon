@@ -48,18 +48,26 @@ impl Space {
         let (last_x, sx) = if dx >= 0 {
             (x > max_x - dx, x - min_x)
         } else {
-            (x < min_x - dx, max_x - x)
+            (x < min_x - dx, x - max_x)
         };
 
         let (last_y, sy) = if dy >= 0 {
             (y > max_y - dy, y - min_y)
         } else {
-            (y < min_y - dy, max_y - y)
+            (y < min_y - dy, y - max_y)
         };
 
         if last_x || last_y {
-            let nx = sx / dx;
-            let ny = sy / dy;
+            let nx = if dx == 0 {
+                i32::max_value()
+            } else {
+                sx / dx
+            };
+            let ny = if dy == 0 {
+                i32::max_value()
+            } else {
+                sy / dy
+            };
             let n = min(nx, ny);
 
             Some(Point { x, y } - Delta { dx, dy } * n)

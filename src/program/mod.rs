@@ -21,6 +21,15 @@ impl Program {
         }
     }
 
+    pub fn read(code: &str) -> Program {
+        Program {
+            space: Space::from(code),
+            ips: vec![Ip::new()],
+            current: 0,
+            exit: None,
+        }
+    }
+
     pub fn step_single(&mut self) {
         let ip = &mut self.ips[self.current];
 
@@ -160,9 +169,20 @@ impl Program {
         loop {
             self.step_single();
             self.current += 1;
+            self.current %= self.ips.len();
 
             if self.current == now {
                 break;
+            }
+        }
+    }
+
+    pub fn run(&mut self) -> Value {
+        loop {
+            self.step_all();
+
+            if let Some(value) = self.exit {
+                return value;
             }
         }
     }
