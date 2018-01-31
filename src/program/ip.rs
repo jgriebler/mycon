@@ -1,9 +1,12 @@
+//! A single instruction pointer in a running program.
+
 use rand;
 
 use data::{Value, Point, Delta};
 use data::space::Space;
 use data::stack::StackStack;
 
+/// An instruction pointer in a running program.
 #[derive(Clone)]
 pub struct Ip {
     id: Value,
@@ -14,6 +17,14 @@ pub struct Ip {
 }
 
 impl Ip {
+    /// Creates a new `Ip` at the origin, facing east.
+    ///
+    /// The `Ip` will be in the configuration it should have at program start:
+    /// Its [`Delta`] will be `(1, 0)`, its [`StackStack`] will contain a single
+    /// empty stack.
+    ///
+    /// [`Delta`]: ../../data/struct.Delta.html
+    /// [`StackStack`]: ../../data/stack/struct.StackStack.html
     pub fn new() -> Ip {
         Ip {
             id: 0,
@@ -24,10 +35,32 @@ impl Ip {
         }
     }
 
+    /// Returns the [`Value`] at the `Ip`'s current position.
+    ///
+    /// [`Value`]: ../../data/struct.Value.html
     pub fn get(&self, space: &Space) -> Value {
         space.get(self.position)
     }
 
+    pub fn get_offset(&mut self, space: &Space) {
+        let y = self.pop();
+        let x = self.pop();
+
+        let v = space.get(Point { x, y } + self.storage);
+        self.push(v);
+    }
+
+    pub fn put_offset(&mut self, space: &mut Space) {
+        let y = self.pop();
+        let x = self.pop();
+        let v = self.pop();
+
+        space.set(Point { x, y } + self.storage, v);
+    }
+
+    /// Advances the `Ip`'s position by step of its current [`Delta`].
+    ///
+    /// [`Delta`]: ../../data/struct.Delta.html
     pub fn step(&mut self, space: &Space) {
         match space.maybe_wrap(self.position, self.delta) {
             Some(position) => self.position = position,
@@ -35,6 +68,18 @@ impl Ip {
         }
     }
 
+    pub fn jump(&mut self, space: &Space, n: Value) {
+        let delta = self.delta;
+
+        self.delta *= n - 1;
+        self.step(space);
+
+        self.delta = delta;
+    }
+
+    /// Sets the `Ip`'s [`Delta`] to a new value.
+    ///
+    /// [`Delta`]: ../../data/struct.Delta.html
     pub fn set_delta(&mut self, delta: Delta) {
         self.delta = delta;
     }
@@ -67,6 +112,10 @@ impl Ip {
         self.stacks.push(value);
     }
 
+    /// Pops the top [`Value`] off the `Ip`'s [`StackStack`].
+    ///
+    /// [`Value`]: ../../data/struct.Value.html
+    /// [`StackStack`]: ../../data/stack/struct.StackStack.html
     pub fn pop(&mut self) -> Value {
         self.stacks.pop()
     }
@@ -90,6 +139,10 @@ impl Ip {
         self.stacks.clear();
     }
 
+    /// Advances the `Ip`'s position to the next command in its path.
+    ///
+    /// Any intervening empty space or areas delimited by semicolons will be
+    /// skipped.
     pub fn find_command(&mut self, space: &Space) {
         let mut skip = false;
 

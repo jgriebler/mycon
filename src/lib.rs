@@ -1,3 +1,9 @@
+//! An interpreter and a library for the esoteric programming language [Befunge-98].
+//!
+//! [Befunge-98]: https://esolangs.org/wiki/Funge-98
+
+#![warn(missing_docs)]
+
 extern crate rand;
 
 pub mod data;

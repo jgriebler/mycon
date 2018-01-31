@@ -1,3 +1,5 @@
+//! Various types and data structures used for representing program state.
+
 pub mod space;
 pub mod stack;
 
@@ -5,14 +7,17 @@ use std::ops::{Add, AddAssign, Sub, SubAssign, Mul, MulAssign};
 
 pub const SPACE: i32 = ' ' as i32;
 
+/// The universal type of data upon which a Befunge-98 program operates.
 pub type Value = i32;
 
+/// A point in funge space.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct Point {
     pub x: i32,
     pub y: i32,
 }
 
+/// An offset vector in funge space.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct Delta {
     pub dx: i32,
@@ -20,6 +25,7 @@ pub struct Delta {
 }
 
 impl Delta {
+    /// Returns the negative to the given `Delta`.
     pub fn reverse(&self) -> Delta {
         Delta {
             dx: -self.dx,
@@ -27,6 +33,7 @@ impl Delta {
         }
     }
 
+    /// Returns the original `Delta` rotated 90 degrees to the left.
     pub fn rotate_left(&self) -> Delta {
         Delta {
             dx: self.dy,
@@ -34,6 +41,7 @@ impl Delta {
         }
     }
 
+    /// Returns the original `Delta` rotated 90 degrees to the right.
     pub fn rotate_right(&self) -> Delta {
         Delta {
             dx: -self.dy,
