@@ -207,30 +207,30 @@ mod tests {
         let mut space = Space::new();
 
         for x in 0..32 {
-            space.set(x, 0, x);
+            space.set(Point { x, y: 0 }, x);
         }
 
         for n in 64..128 {
-            space.set(n, n, -n);
+            space.set(Point { x: n, y: n }, -n);
         }
 
         for x in 0..32 {
-            assert_eq!(x, space.get(x, 0));
+            assert_eq!(x, space.get(Point { x, y: 0 }));
         }
 
         for n in 64..128 {
-            assert_eq!(-n, space.get(n, n));
+            assert_eq!(-n, space.get(Point { x: n, y: n }));
         }
 
-        assert_eq!(SPACE, space.get(-42, 70));
+        assert_eq!(SPACE, space.get(Point { x: -42, y: 70 }));
         assert_eq!((0, 0), space.min());
         assert_eq!((127, 127), space.max());
 
-        space.set(-10, -10, SPACE);
+        space.set(Point { x: -10, y: -10 }, SPACE);
 
         assert_eq!((0, 0), space.min());
 
-        space.set(-10, -10, 'x' as i32);
+        space.set(Point { x: -10, y: -10 }, 'x' as i32);
 
         assert_eq!((-10, -10), space.min());
     }
@@ -241,7 +241,7 @@ mod tests {
         let space = Space::from(code);
 
         for i in 0..9 {
-            assert_eq!(i + '1' as i32, space.get(i % 3, i / 3));
+            assert_eq!(i + '1' as i32, space.get(Point { x: i % 3, y: i / 3 }));
         }
 
         assert_eq!((2, 2), space.max());
