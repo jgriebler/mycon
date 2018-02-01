@@ -14,7 +14,7 @@ type Stack = Vec<Value>;
 /// 
 /// [`Value`]: ../type.Value.html
 /// [`Ip`]: ../../program/ip/struct.Ip.html
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct StackStack {
     stacks: Vec<Stack>,
 }
@@ -129,10 +129,10 @@ impl StackStack {
         let mut old = self.stacks.pop().unwrap();
         let len = old.len();
 
-        let y = old.pop().unwrap_or(0);
-        let x = old.pop().unwrap_or(0);
-
         let top = self.top();
+
+        let y = top.pop().unwrap_or(0);
+        let x = top.pop().unwrap_or(0);
 
         let m = n as u32 as usize;
 

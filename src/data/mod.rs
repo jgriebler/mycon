@@ -3,6 +3,7 @@
 pub mod space;
 pub mod stack;
 
+use std::fmt;
 use std::ops::{Add, AddAssign, Sub, SubAssign, Mul, MulAssign};
 
 const SPACE: i32 = ' ' as i32;
@@ -17,6 +18,12 @@ pub struct Point {
     pub x: i32,
     /// The y coordinate of the point.
     pub y: i32,
+}
+
+impl fmt::Display for Point {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "({}, {})", self.x, self.y)
+    }
 }
 
 /// An offset vector in funge space.
@@ -51,6 +58,12 @@ impl Delta {
             dx: -self.dy,
             dy: self.dx,
         }
+    }
+}
+
+impl fmt::Display for Delta {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "({}, {})", self.dx, self.dy)
     }
 }
 

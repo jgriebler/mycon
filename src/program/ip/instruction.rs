@@ -2,7 +2,8 @@ use rand;
 
 use data::Delta;
 use data::space::Space;
-use super::Ip;
+use program::config::IoContext;
+use super::{Ip, ExecResult};
 
 #[doc(hidden)]
 impl Ip {
@@ -25,7 +26,9 @@ impl Ip {
     }
 
     pub fn trampoline(&mut self, space: &Space) {
-        self.step(&space);
+        if !space.is_last(self.position, self.delta) {
+            self.step(&space);
+        }
     }
 
     pub fn reverse(&mut self) {
@@ -63,7 +66,7 @@ impl Ip {
         let n = self.pop();
         let delta = self.delta;
 
-        self.delta *= n - 1;
+        self.delta *= n;
         self.step(space);
 
         self.delta = delta;
@@ -271,20 +274,46 @@ impl Ip {
         let b = self.pop();
         let a = self.pop();
 
-        self.push(a / b);
+        if b == 0 {
+            self.push(0)
+        } else {
+            self.push(a / b);
+        }
     }
 
     pub fn rem(&mut self) {
         let b = self.pop();
         let a = self.pop();
 
-        self.push(a % b);
+        if b == 0 {
+            self.push(0);
+        } else {
+            self.push(a % b);
+        }
     }
 
     // Strings
 
     pub fn string_mode(&mut self) {
         self.string = true;
+    }
+
+    pub fn fetch_char(&mut self, space: &Space) {
+        let v = if space.is_last(self.position, self.delta) {
+            32
+        } else {
+            space.get(self.position + self.delta)
+        };
+
+        self.push(v);
+        self.step(space);
+    }
+
+    pub fn store_char(&mut self, space: &mut Space) {
+        let v = self.pop();
+
+        space.set(self.position + self.delta, v);
+        self.step(space);
     }
 
     // Reflection
@@ -305,6 +334,42 @@ impl Ip {
         space.set(self.storage + Delta { dx, dy }, v);
     }
 
+    // Input/Output
+
+    pub fn output_decimal(&mut self, io: &mut IoContext) {
+        let v = self.pop();
+
+        if !io.write_decimal(v) {
+            self.reverse();
+        }
+    }
+
+    pub fn output_char(&mut self, io: &mut IoContext) {
+        let v = self.pop();
+
+        if let Some(c) = ::std::char::from_u32(v as u32) {
+            if !io.write_char(c) {
+                self.reverse();
+            }
+        } else {
+            self.reverse();
+        }
+    }
+
+    pub fn input_decimal(&mut self, io: &mut IoContext) {
+        match io.read_decimal() {
+            Some(v) => self.push(v),
+            None    => self.reverse(),
+        }
+    }
+
+    pub fn input_char(&mut self, io: &mut IoContext) {
+        match io.read_char() {
+            Some(v) => self.push(v as i32),
+            None    => self.reverse(),
+        }
+    }
+
     // Concurrency
 
     pub fn split(&mut self) -> Ip {
@@ -312,5 +377,39 @@ impl Ip {
 
         ip.reverse();
         ip
+    }
+
+    // Other
+
+    pub fn iterate(&mut self, space: &mut Space, io: &mut IoContext) -> ExecResult {
+        let n = self.pop();
+
+        if n <= 0 {
+            if n == 0 {
+                self.step(space);
+                self.find_command(space);
+            }
+            return ExecResult::Done;
+        }
+
+        let v = self.peek_command(space);
+        if let Some(c) = ::std::char::from_u32(v as u32) {
+            if !is_idempotent(c) {
+                for _ in 1..n {
+                    self.execute(space, io, c);
+                }
+            }
+            self.execute(space, io, c)
+        } else {
+            self.reverse();
+            ExecResult::Done
+        }
+    }
+}
+
+fn is_idempotent(c: char) -> bool {
+    match c {
+        '<' | '>' | '?' | '@' | '^' | 'n' | 'q' | 't' | 'v' | 'z' => true,
+        _                                                         => false,
     }
 }

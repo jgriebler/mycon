@@ -5,6 +5,7 @@ mod instruction;
 use data::{Value, Point, Delta};
 use data::space::Space;
 use data::stack::StackStack;
+use super::config::IoContext;
 
 /// An instruction pointer in a running program.
 #[derive(Clone)]
@@ -45,7 +46,7 @@ impl Ip {
     }
 
     /// Executes a single command and moves the `Ip` to the next.
-    pub fn tick(&mut self, space: &mut Space) -> ExecResult {
+    pub fn tick(&mut self, space: &mut Space, io: &mut IoContext) -> ExecResult {
         let v = self.get_current(space);
 
         if self.string {
@@ -66,29 +67,30 @@ impl Ip {
         }
 
         let result = if let Some(c) = ::std::char::from_u32(v as u32) {
-            self.execute(space, c)
+            self.execute(space, io, c)
         } else {
             self.reverse();
             ExecResult::Done
         };
 
         self.step(space);
-        self.find_command(space);
+
+        if !self.string {
+            self.find_command(space);
+        }
+
         result
     }
 
-    /// Advances the `Ip`'s position by step of its current [`Delta`].
+    /// Advances the `Ip`'s position by one step of its current [`Delta`].
     ///
     /// [`Delta`]: ../../data/struct.Delta.html
     pub fn step(&mut self, space: &Space) {
-        match space.maybe_wrap(self.position, self.delta) {
-            Some(position) => self.position = position,
-            None           => self.position += self.delta,
-        }
+        self.position = space.new_position(self.position, self.delta);
     }
 
     /// Executes a single command, without moving the `Ip`'s afterwards.
-    pub fn execute(&mut self, space: &mut Space, command: char) -> ExecResult {
+    pub fn execute(&mut self, space: &mut Space, io: &mut IoContext, command: char) -> ExecResult {
         match command {
             ' '         => panic!("attempted to execute ' '"),
             '!'         => self.negate(),
@@ -96,15 +98,15 @@ impl Ip {
             '#'         => self.trampoline(space),
             '$'         => self.discard(),
             '%'         => self.rem(),
-            '&'         => self.reverse(), // TODO implement
-            '\''        => self.reverse(), // TODO implement
+            '&'         => self.input_decimal(io),
+            '\''        => self.fetch_char(space),
             '('         => self.reverse(), // TODO implement
             ')'         => self.reverse(), // TODO implement
             '*'         => self.mul(),
             '+'         => self.add(),
-            ','         => self.reverse(), // TODO implement
+            ','         => self.output_char(io),
             '-'         => self.sub(),
-            '.'         => self.reverse(), // TODO implement
+            '.'         => self.output_decimal(io),
             '/'         => self.div(),
             '0'         => self.push_zero(),
             '1'         => self.push_one(),
@@ -140,7 +142,7 @@ impl Ip {
             'h'         => self.reverse(),
             'i'         => self.reverse(), // TODO implement
             'j'         => self.jump(space),
-            'k'         => self.reverse(), // TODO implement
+            'k'         => return self.iterate(space, io),
             'l'         => self.reverse(),
             'm'         => self.reverse(),
             'n'         => self.clear(),
@@ -148,7 +150,7 @@ impl Ip {
             'p'         => self.put(space),
             'q'         => return ExecResult::Terminate(self.pop()),
             'r'         => self.reverse(),
-            's'         => self.reverse(), // TODO implement
+            's'         => self.store_char(space),
             't'         => return ExecResult::AddIp(self.split()),
             'u'         => self.dig(),
             'v'         => self.go_south(),
@@ -159,7 +161,7 @@ impl Ip {
             '{'         => self.begin_block(),
             '|'         => self.if_north_south(),
             '}'         => self.end_block(),
-            '~'         => self.reverse(), // TODO implement
+            '~'         => self.input_char(io),
             _           => self.reverse(),
         }
 
@@ -212,6 +214,7 @@ impl Ip {
     pub fn peek_command(&mut self, space: &Space) -> Value {
         let orig_position = self.position;
 
+        self.step(space);
         self.find_command(space);
 
         let ret = self.get_current(space);

@@ -90,15 +90,15 @@ impl Space {
         self.bounds.max()
     }
 
-    /// For a given [`Point`] `p` and [`Delta`] `d`, checks whether `p + d`
-    /// would leave the bounding box.
+    /// Advances the [`Point`] `p` by the [`Delta`] `d`, potentially wrapping to
+    /// the other side of the `Space`.
     ///
     /// If `p + d` would be outside the bounding box, returns the point of
-    /// reentry on the other side wrapped in `Some`, otherwise `None`.
+    /// reentry on the other side, otherwise `p + d` is returned.
     ///
     /// [`Point`]: ../struct.Point.html
     /// [`Delta`]: ../struct.Delta.html
-    pub fn maybe_wrap(&self, Point { x, y }: Point, Delta { dx, dy }: Delta) -> Option<Point> {
+    pub fn new_position(&self, Point { x, y }: Point, Delta { dx, dy }: Delta) -> Point {
         use std::cmp::min;
 
         let (min_x, min_y) = self.bounds.min();
@@ -129,10 +129,31 @@ impl Space {
             };
             let n = min(nx, ny);
 
-            Some(Point { x, y } - Delta { dx, dy } * n)
+            Point { x, y } - Delta { dx, dy } * n
         } else {
-            None
+            Point { x, y } + Delta { dx, dy }
         }
+    }
+
+    /// Checks whether adding the [`Delta`] to the [`Point`] would be outside
+    /// the bounding box.
+    pub fn is_last(&self, Point { x, y }: Point, Delta { dx, dy }: Delta) -> bool {
+        let (min_x, min_y) = self.bounds.min();
+        let (max_x, max_y) = self.bounds.max();
+
+        let last_x = if dx >= 0 {
+            x > max_x - dx
+        } else {
+            x < min_x - dx
+        };
+
+        let last_y = if dy >= 0 {
+            y > max_y - dy
+        } else {
+            y < min_y - dy
+        };
+
+        last_x || last_y
     }
 }
 
@@ -148,7 +169,7 @@ impl<'a> From<&'a str> for Space {
             if c == '\n' {
                 x = 0;
                 y += 1;
-            } else {
+            } else if c != '\r' {
                 space.set(Point { x, y }, Value::from(c as i32));
                 x += 1;
             }

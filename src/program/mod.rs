@@ -1,12 +1,11 @@
 //! A representation of a running Befunge-98 program.
 
+pub mod config;
 pub mod ip;
-
-use std::io;
-use std::io::{Read, Write};
 
 use data::Value;
 use data::space::Space;
+use self::config::IoContext;
 use self::ip::{Ip, ExecResult};
 
 /// An instance of a Befunge-98 program.
@@ -19,24 +18,20 @@ pub struct Program {
     ips: Vec<Ip>,
     current: usize,
     exit: Option<Value>,
-    input: Box<Read>,
-    input_buffer: String,
-    output: Box<Write>,
+    io: IoContext,
 }
 
 impl Program {
     fn init(space: Space) -> Program {
-        let input = Box::new(io::stdin());
-        let output = Box::new(io::stdout());
+        let mut ip = Ip::new();
+        ip.find_command(&space);
 
         Program {
             space,
-            ips: vec![Ip::new()],
+            ips: vec![ip],
             current: 0,
             exit: None,
-            input,
-            input_buffer: String::new(),
-            output,
+            io: IoContext::stdio(),
         }
     }
 
@@ -60,7 +55,7 @@ impl Program {
     ///
     /// [`Ip`]: ip/struct.Ip.html
     pub fn step_single(&mut self) {
-        let result = self.ips[self.current].tick(&mut self.space);
+        let result = self.ips[self.current].tick(&mut self.space, &mut self.io);
 
         let offset = match result {
             ExecResult::Done         => 1,
@@ -68,6 +63,11 @@ impl Program {
             ExecResult::DeleteIp     => { self.ips.remove(self.current); 0 },
             ExecResult::Terminate(v) => { self.exit = Some(v); 1 },
         };
+
+        if self.ips.is_empty() {
+            self.exit = Some(0);
+            return;
+        }
 
         self.current += offset;
         self.current %= self.ips.len();
