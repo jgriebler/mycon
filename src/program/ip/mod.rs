@@ -12,8 +12,9 @@ pub struct Ip {
     id: Value,
     position: Point,
     delta: Delta,
-    storage: Delta,
+    storage: Point,
     stacks: StackStack,
+    string: bool,
 }
 
 impl Ip {
@@ -30,8 +31,9 @@ impl Ip {
             id: 0,
             position: Point { x: 0, y: 0 },
             delta: Delta { dx: 1, dy: 0 },
-            storage: Delta { dx: 0, dy: 0 },
+            storage: Point { x: 0, y: 0 },
             stacks: StackStack::new(),
+            string: false,
         }
     }
 
@@ -45,6 +47,23 @@ impl Ip {
     /// Executes a single command and moves the `Ip` to the next.
     pub fn tick(&mut self, space: &mut Space) -> ExecResult {
         let v = self.get_current(space);
+
+        if self.string {
+            if v == 34 {
+                self.string = false;
+                self.step(space);
+                self.find_command(space);
+            } else {
+                self.push(v);
+                self.step(space);
+
+                if v == 32 {
+                    self.skip_space(space);
+                }
+            }
+
+            return ExecResult::Done;
+        }
 
         let result = if let Some(c) = ::std::char::from_u32(v as u32) {
             self.execute(space, c)
@@ -71,9 +90,9 @@ impl Ip {
     /// Executes a single command, without moving the `Ip`'s afterwards.
     pub fn execute(&mut self, space: &mut Space, command: char) -> ExecResult {
         match command {
-            ' '         => unreachable!("space"),
+            ' '         => panic!("attempted to execute ' '"),
             '!'         => self.negate(),
-            '"'         => self.reverse(), // TODO implement
+            '"'         => self.string_mode(),
             '#'         => self.trampoline(space),
             '$'         => self.discard(),
             '%'         => self.rem(),
@@ -98,7 +117,7 @@ impl Ip {
             '8'         => self.push_eight(),
             '9'         => self.push_nine(),
             ':'         => self.duplicate(),
-            ';'         => unreachable!("semicolon"),
+            ';'         => panic!("attempted to execute ';'"),
             '<'         => self.go_west(),
             '='         => self.reverse(), // TODO implement
             '>'         => self.go_east(),
@@ -130,16 +149,16 @@ impl Ip {
             'q'         => return ExecResult::Terminate(self.pop()),
             'r'         => self.reverse(),
             's'         => self.reverse(), // TODO implement
-            't'         => self.reverse(), // TODO implement
-            'u'         => self.reverse(), // TODO implement
+            't'         => return ExecResult::AddIp(self.split()),
+            'u'         => self.dig(),
             'v'         => self.go_south(),
             'w'         => self.compare(),
             'x'         => self.absolute_delta(),
             'y'         => self.reverse(), // TODO implement
             'z'         => (),
-            '{'         => self.reverse(), // TODO implement
+            '{'         => self.begin_block(),
             '|'         => self.if_north_south(),
-            '}'         => self.reverse(), // TODO implement
+            '}'         => self.end_block(),
             '~'         => self.reverse(), // TODO implement
             _           => self.reverse(),
         }
@@ -201,11 +220,45 @@ impl Ip {
 
         ret
     }
+
+    /// Skips all empty space in the path of the `Ip`.
+    ///
+    /// Similar to [`find_command`], except that semicolons are treated just
+    /// like any other non-space character.
+    ///
+    /// This function will be used if the `Ip` is in string mode, in which each
+    /// encountered character will be pushed to the [`StackStack`], but any
+    /// contiguous sequence of spaces will be collapsed into one.
+    ///
+    /// [`find_command`]: #method.find_command
+    /// [`StackStack`]: ../../data/stack/struct.StackStack.html
+    pub fn skip_space(&mut self, space: &Space) {
+        while self.get_current(space) == 32 {
+            self.step(space);
+        }
+    }
 }
 
+/// The result of executing an instruction.
+///
+/// The variant indicates which further steps need to be taken by the caller to
+/// update its information on the current program state.
 pub enum ExecResult {
+    /// Nothing needs to be done.
     Done,
+
+    /// The instruction created a new [`Ip`] that should be added to the list.
+    ///
+    /// [`Ip`]: struct.Ip.html
     AddIp(Ip),
+
+    /// The [`Ip`] executing the instruction got stopped and should be deleted.
+    ///
+    /// [`Ip`]: struct.Ip.html
     DeleteIp,
+
+    /// The program should be terminated with the given [`Value`].
+    ///
+    /// [`Value`]: ../../data/type.Value.html
     Terminate(Value),
 }

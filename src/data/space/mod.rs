@@ -158,7 +158,7 @@ impl<'a> From<&'a str> for Space {
     }
 }
 
-pub struct Bounds {
+struct Bounds {
     min_x: i32,
     min_y: i32,
     max_x: i32,

@@ -5,7 +5,7 @@ pub mod stack;
 
 use std::ops::{Add, AddAssign, Sub, SubAssign, Mul, MulAssign};
 
-pub const SPACE: i32 = ' ' as i32;
+const SPACE: i32 = ' ' as i32;
 
 /// The universal type of data upon which a Befunge-98 program operates.
 pub type Value = i32;
@@ -13,14 +13,18 @@ pub type Value = i32;
 /// A point in funge space.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct Point {
+    /// The x coordinate of the point.
     pub x: i32,
+    /// The y coordinate of the point.
     pub y: i32,
 }
 
 /// An offset vector in funge space.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct Delta {
+    /// The x component of the offset vector.
     pub dx: i32,
+    /// The y component of the offset vector.
     pub dy: i32,
 }
 

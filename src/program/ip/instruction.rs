@@ -1,9 +1,10 @@
 use rand;
 
-use data::{Value, Point, Delta};
+use data::Delta;
 use data::space::Space;
 use super::Ip;
 
+#[doc(hidden)]
 impl Ip {
     // Control flow
 
@@ -147,6 +148,38 @@ impl Ip {
         self.stacks.clear();
     }
 
+    // Stack stack manipulation
+
+    pub fn begin_block(&mut self) {
+        let n = self.pop();
+
+        self.stacks.create_stack(n, self.storage);
+        self.storage = self.position + self.delta;
+    }
+
+    pub fn end_block(&mut self) {
+        if self.stacks.single() {
+            self.reverse();
+            return;
+        }
+
+        let n = self.pop();
+        let storage = self.stacks.delete_stack(n);
+
+        self.storage = storage;
+    }
+
+    pub fn dig(&mut self) {
+        if self.stacks.single() {
+            self.reverse();
+            return;
+        }
+
+        let n = self.pop();
+
+        self.stacks.transer_elements(n);
+    }
+
     // Arithmetic
 
     pub fn push_zero(&mut self) {
@@ -248,21 +281,36 @@ impl Ip {
         self.push(a % b);
     }
 
+    // Strings
+
+    pub fn string_mode(&mut self) {
+        self.string = true;
+    }
+
     // Reflection
 
     pub fn get(&mut self, space: &Space) {
-        let y = self.pop();
-        let x = self.pop();
+        let dy = self.pop();
+        let dx = self.pop();
 
-        let v = space.get(Point { x, y } + self.storage);
+        let v = space.get(self.storage + Delta { dx, dy });
         self.push(v);
     }
 
     pub fn put(&mut self, space: &mut Space) {
-        let y = self.pop();
-        let x = self.pop();
+        let dy = self.pop();
+        let dx = self.pop();
         let v = self.pop();
 
-        space.set(Point { x, y } + self.storage, v);
+        space.set(self.storage + Delta { dx, dy }, v);
+    }
+
+    // Concurrency
+
+    pub fn split(&mut self) -> Ip {
+        let mut ip = self.clone();
+
+        ip.reverse();
+        ip
     }
 }

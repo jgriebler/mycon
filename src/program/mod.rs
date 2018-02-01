@@ -5,7 +5,7 @@ pub mod ip;
 use std::io;
 use std::io::{Read, Write};
 
-use data::{Value, Delta};
+use data::Value;
 use data::space::Space;
 use self::ip::{Ip, ExecResult};
 
