@@ -1,7 +1,11 @@
 //! Helper types for storing program configuration.
 
+use std::env;
 use std::io;
 use std::io::{BufRead, BufReader, Write};
+use std::iter;
+
+use data::Value;
 
 /// Tracks information on how the program interacts with its environment.
 ///
@@ -90,5 +94,28 @@ impl IoContext {
         self.input_buffer.drain(0..stop);
 
         Some(c)
+    }
+
+    /// Returns flags containing information about the interpreter.
+    ///
+    /// The flags are in the format returned by the 'y'-instruction to a running
+    /// Befunge-98 program.
+    pub fn flags(&self) -> Value {
+        0b00001
+    }
+
+    /// Returns a value indicating the behavior of the '='-instruction.
+    pub fn operating_paradigm(&self) -> Value {
+        0
+    }
+
+    /// Returns an iterator over the command-line arguments of the program.
+    pub fn cmd_args(&self) -> iter::Rev<env::Args> {
+        env::args().rev()
+    }
+
+    /// Returns an iterator over the environment variables.
+    pub fn env_vars(&self) -> env::Vars {
+        env::vars()
     }
 }

@@ -19,6 +19,7 @@ pub struct Program {
     current: usize,
     exit: Option<Value>,
     io: IoContext,
+    new_id: Value,
 }
 
 impl Program {
@@ -32,6 +33,7 @@ impl Program {
             current: 0,
             exit: None,
             io: IoContext::stdio(),
+            new_id: 1,
         }
     }
 
@@ -55,13 +57,23 @@ impl Program {
     ///
     /// [`Ip`]: ip/struct.Ip.html
     pub fn step_single(&mut self) {
-        let result = self.ips[self.current].tick(&mut self.space, &mut self.io);
+        let result = self.ips[self.current].tick(&mut self.space, &mut self.io, self.new_id);
 
         let offset = match result {
             ExecResult::Done         => 1,
-            ExecResult::AddIp(new)   => { self.ips.insert(self.current, new); 2 },
-            ExecResult::DeleteIp     => { self.ips.remove(self.current); 0 },
-            ExecResult::Terminate(v) => { self.exit = Some(v); 1 },
+            ExecResult::AddIp(new)   => {
+                self.new_id += 1;
+                self.ips.insert(self.current, new);
+                2
+            },
+            ExecResult::DeleteIp     => {
+                self.ips.remove(self.current);
+                0
+            },
+            ExecResult::Terminate(v) => {
+                self.exit = Some(v);
+                1
+            },
         };
 
         if self.ips.is_empty() {

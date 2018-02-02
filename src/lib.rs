@@ -4,6 +4,7 @@
 
 #![warn(missing_docs)]
 
+extern crate chrono;
 extern crate rand;
 
 pub mod data;

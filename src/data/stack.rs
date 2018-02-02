@@ -51,6 +51,27 @@ impl StackStack {
         self.top().push(value);
     }
 
+    /// Pushes a string to the top stack on the `StackStack`.
+    ///
+    /// Returns the number of cells that were pushed.
+    ///
+    /// Afterwards, the first character in the string will be at the top of the
+    /// stack. The string is delimited by a 0.
+    pub fn push_string(&mut self, s: &str) -> usize {
+        let mut n = 1;
+
+        self.push(0);
+        self.top().append(&mut s.chars()
+                          .rev()
+                          .map(|c| {
+                              n += 1;
+                              c as i32
+                          })
+                          .collect());
+
+        n
+    }
+
     /// Pops a [`Value`] from the top stack on the `StackStack`.
     ///
     /// If the top stack is empty, `0` will be returned.
@@ -65,9 +86,66 @@ impl StackStack {
         }
     }
 
+    /// Returns the `n`th cell of the top stack, counted from the top.
+    ///
+    /// If `n` is out of bounds, 0 will be returned.
+    pub fn nth(&mut self, n: usize) -> Value {
+        let top = self.top();
+        let len = top.len();
+
+        if n >= len {
+            0
+        } else {
+            top[len - n]
+        }
+    }
+
+    /// Tries to pop a string from the top stack on the `StackStack`.
+    ///
+    /// It will be popped character by character, until a 0 is encountered.
+    /// `None` will be returned if the string is not valid UTF-8.
+    pub fn pop_string(&mut self) -> Option<String> {
+        let mut s = String::new();
+
+        loop {
+            let v = self.pop();
+
+            if v == 0 {
+                break;
+            }
+
+            if let Some(c) = ::std::char::from_u32(v as u32) {
+                s.push(c);
+            } else {
+                return None;
+            }
+        }
+
+        Some(s)
+    }
+
     /// Completely empties the top stack on the `StackStack`.
     pub fn clear(&mut self) {
         self.top().clear();
+    }
+
+    /// Returns a vector containing the size of each stack on the `StackStack`.
+    ///
+    /// The first element is the size of the bottommost stack.
+    pub fn stack_sizes(&self) -> Vec<usize> {
+        self.stacks.iter().map(Vec::len).collect()
+    }
+
+    /// Deletes `n` cells from the top stack, from the top down.
+    ///
+    /// # Panics
+    ///
+    /// Panics if `n` exceeds the number of elements in the top stack.
+    pub fn delete_cells(&mut self, n: usize) {
+        let top = self.top();
+        let len = top.len();
+
+        top.drain(len - n ..);
     }
 
     /// Pushes a new stack onto the `StackStack`.

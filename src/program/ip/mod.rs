@@ -46,7 +46,11 @@ impl Ip {
     }
 
     /// Executes a single command and moves the `Ip` to the next.
-    pub fn tick(&mut self, space: &mut Space, io: &mut IoContext) -> ExecResult {
+    pub fn tick(&mut self, space: &mut Space, io: &mut IoContext, new_id: Value) -> ExecResult {
+        if !self.string {
+            self.find_command(space);
+        }
+
         let v = self.get_current(space);
 
         if self.string {
@@ -67,7 +71,7 @@ impl Ip {
         }
 
         let result = if let Some(c) = ::std::char::from_u32(v as u32) {
-            self.execute(space, io, c)
+            self.execute(space, io, new_id, c)
         } else {
             self.reverse();
             ExecResult::Done
@@ -90,7 +94,7 @@ impl Ip {
     }
 
     /// Executes a single command, without moving the `Ip`'s afterwards.
-    pub fn execute(&mut self, space: &mut Space, io: &mut IoContext, command: char) -> ExecResult {
+    pub fn execute(&mut self, space: &mut Space, io: &mut IoContext, new_id: Value, command: char) -> ExecResult {
         match command {
             ' '         => panic!("attempted to execute ' '"),
             '!'         => self.negate(),
@@ -100,8 +104,8 @@ impl Ip {
             '%'         => self.rem(),
             '&'         => self.input_decimal(io),
             '\''        => self.fetch_char(space),
-            '('         => self.reverse(), // TODO implement
-            ')'         => self.reverse(), // TODO implement
+            '('         => self.load_semantics(),
+            ')'         => self.unload_semantics(),
             '*'         => self.mul(),
             '+'         => self.add(),
             ','         => self.output_char(io),
@@ -142,7 +146,7 @@ impl Ip {
             'h'         => self.reverse(),
             'i'         => self.reverse(), // TODO implement
             'j'         => self.jump(space),
-            'k'         => return self.iterate(space, io),
+            'k'         => return self.iterate(space, io, new_id),
             'l'         => self.reverse(),
             'm'         => self.reverse(),
             'n'         => self.clear(),
@@ -151,12 +155,12 @@ impl Ip {
             'q'         => return ExecResult::Terminate(self.pop()),
             'r'         => self.reverse(),
             's'         => self.store_char(space),
-            't'         => return ExecResult::AddIp(self.split()),
+            't'         => return ExecResult::AddIp(self.split(space, new_id)),
             'u'         => self.dig(),
             'v'         => self.go_south(),
             'w'         => self.compare(),
             'x'         => self.absolute_delta(),
-            'y'         => self.reverse(), // TODO implement
+            'y'         => self.get_sysinfo(space, io),
             'z'         => (),
             '{'         => self.begin_block(),
             '|'         => self.if_north_south(),
@@ -183,12 +187,28 @@ impl Ip {
         self.stacks.push(value);
     }
 
+    /// Pushes a string on the `Ip`'s [`StackStack`].
+    ///
+    /// Returns the number of cells that were pushed.
+    ///
+    /// [`StackStack`]: ../../data/stack/struct.StackStack.html
+    pub fn push_string(&mut self, s: &str) -> usize {
+        self.stacks.push_string(s)
+    }
+
     /// Pops the top [`Value`] off the `Ip`'s [`StackStack`].
     ///
     /// [`Value`]: ../../data/struct.Value.html
     /// [`StackStack`]: ../../data/stack/struct.StackStack.html
     pub fn pop(&mut self) -> Value {
         self.stacks.pop()
+    }
+
+    /// Pops a string off the `Ip`'s [`StackStack`].
+    ///
+    /// [`StackStack`]: ../../data/stack/struct.StackStack.html
+    pub fn pop_string(&mut self) -> Option<String> {
+        self.stacks.pop_string()
     }
 
     /// Advances the `Ip`'s position to the next command in its path.

@@ -169,7 +169,7 @@ impl<'a> From<&'a str> for Space {
             if c == '\n' {
                 x = 0;
                 y += 1;
-            } else if c != '\r' {
+            } else if c != '\r' && c != 12 as char {
                 space.set(Point { x, y }, Value::from(c as i32));
                 x += 1;
             }

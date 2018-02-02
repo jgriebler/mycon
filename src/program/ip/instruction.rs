@@ -1,9 +1,13 @@
+use chrono::{Utc, Datelike, Timelike};
 use rand;
 
-use data::Delta;
+use data::{Value, Point, Delta};
 use data::space::Space;
 use program::config::IoContext;
 use super::{Ip, ExecResult};
+
+const HANDPRINT: i32 = 0x4a474d59;
+const VERSION: &'static str = env!("CARGO_PKG_VERSION");
 
 #[doc(hidden)]
 impl Ip {
@@ -372,16 +376,60 @@ impl Ip {
 
     // Concurrency
 
-    pub fn split(&mut self) -> Ip {
+    pub fn split(&mut self, space: &Space, new_id: i32) -> Ip {
         let mut ip = self.clone();
 
+        ip.id = new_id;
         ip.reverse();
+        ip.step(space);
+        ip.find_command(space);
+
         ip
+    }
+
+    // Fingerprints
+
+    pub fn load_semantics(&mut self) {
+        let v = self.pop();
+
+        if v <= 0 {
+            self.reverse();
+        } else {
+            let mut fp = 0;
+
+            for _ in 0..v {
+                let n = self.pop();
+
+                fp <<= 8;
+                fp += n;
+            }
+
+            self.reverse(); // TODO implement
+        }
+    }
+
+    pub fn unload_semantics(&mut self) {
+        let v = self.pop();
+
+        if v <= 0 {
+            self.reverse();
+        } else {
+            let mut fp = 0;
+
+            for _ in 0..v {
+                let n = self.pop();
+
+                fp <<= 8;
+                fp += n;
+            }
+
+            self.reverse(); // TODO implement
+        }
     }
 
     // Other
 
-    pub fn iterate(&mut self, space: &mut Space, io: &mut IoContext) -> ExecResult {
+    pub fn iterate(&mut self, space: &mut Space, io: &mut IoContext, new_id: Value) -> ExecResult {
         let n = self.pop();
 
         if n <= 0 {
@@ -396,13 +444,133 @@ impl Ip {
         if let Some(c) = ::std::char::from_u32(v as u32) {
             if !is_idempotent(c) {
                 for _ in 1..n {
-                    self.execute(space, io, c);
+                    self.execute(space, io, new_id, c);
                 }
             }
-            self.execute(space, io, c)
+            self.execute(space, io, new_id, c)
         } else {
             self.reverse();
             ExecResult::Done
+        }
+    }
+
+    pub fn get_sysinfo(&mut self, space: &Space, io: &mut IoContext) {
+        let n = self.pop();
+        let mut num_cells = 0;
+
+        let sizes = self.stacks.stack_sizes();
+
+        // Environment variables
+        num_cells += 1;
+        self.push(0);
+        for (k, v) in io.env_vars() {
+            num_cells += self.push_string(&format!("{}={}", k, v));
+        }
+
+        // Command line arguments
+        num_cells += 2;
+        self.push(0);
+        self.push(0);
+        for a in io.cmd_args() {
+            num_cells += self.push_string(&a);
+        }
+
+        // Size of each stack
+        num_cells += sizes.len();
+        for &l in sizes.iter() {
+            self.push(l as i32);
+        }
+
+        // Total number of stacks
+        num_cells += 1;
+        self.push(sizes.len() as i32);
+
+        let dt = Utc::now();
+
+        // Time
+        num_cells += 1;
+        self.push(((dt.hour() << 16) + (dt.minute() << 8) + dt.second()) as i32);
+
+        // Date
+        num_cells += 1;
+        self.push((dt.year() - 1900 << 16) + ((dt.month() << 8) + dt.day()) as i32);
+
+        let (x0, y0) = space.min();
+        let (x1, y1) = space.max();
+
+        // Program size
+        num_cells += 2;
+        self.push(x1 - x0);
+        self.push(y1 - y0);
+
+        // Program start
+        num_cells += 2;
+        self.push(x0);
+        self.push(y0);
+
+        let Point { x, y } = self.storage;
+
+        // Storage offset
+        num_cells += 2;
+        self.push(x);
+        self.push(y);
+
+        let Delta { dx, dy } = self.delta;
+
+        // Delta
+        num_cells += 2;
+        self.push(dx);
+        self.push(dy);
+
+        let Point { x, y } = self.position;
+
+        // Position
+        num_cells += 2;
+        self.push(x);
+        self.push(y);
+
+        // Team number
+        num_cells += 1;
+        self.push(0);
+
+        // ID
+        num_cells += 1;
+        let id = self.id;
+        self.push(id);
+
+        // Dimension
+        num_cells += 1;
+        self.push(2);
+
+        // Path separator
+        num_cells += 1;
+        self.push('/' as i32);
+
+        // Operating paradigm
+        num_cells += 1;
+        self.push(io.operating_paradigm());
+
+        // Interpreter version
+        num_cells += 1;
+        self.push(version_number(VERSION));
+
+        // Interpreter handprint
+        num_cells += 1;
+        self.push(HANDPRINT);
+
+        // Cell size
+        num_cells += 1;
+        self.push(4);
+
+        // Flags
+        num_cells += 1;
+        self.push(io.flags());
+
+        if n > 0 {
+            let v = self.stacks.nth(n as usize);
+
+            self.stacks.delete_cells(num_cells);
+            self.push(v);
         }
     }
 }
@@ -412,4 +580,17 @@ fn is_idempotent(c: char) -> bool {
         '<' | '>' | '?' | '@' | '^' | 'n' | 'q' | 't' | 'v' | 'z' => true,
         _                                                         => false,
     }
+}
+
+fn version_number(s: &str) -> Value {
+    let mut r = 0;
+
+    for p in s.split('.') {
+        let n: i32 = p.parse().unwrap();
+
+        r <<= 8;
+        r += n;
+    }
+
+    r
 }
