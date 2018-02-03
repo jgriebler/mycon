@@ -1,8 +1,9 @@
 //! Helper types for storing program configuration.
 
 use std::env;
+use std::fs::File;
 use std::io;
-use std::io::{BufRead, BufReader, Write};
+use std::io::{BufRead, BufReader, Read, Write};
 use std::iter;
 
 use data::Value;
@@ -96,12 +97,42 @@ impl IoContext {
         Some(c)
     }
 
+    /// Tries to write the given string to a file.
+    ///
+    /// Returns `true` if it succeeded, `false` otherwise.
+    pub fn write_file(&self, path: &str, data: &str) -> bool {
+        let mut f = match File::create(path) {
+            Ok(f)  => f,
+            Err(_) => return false,
+        };
+
+        f.write_all(data.as_bytes()).is_ok()
+    }
+
+    /// Tries to read from a file.
+    ///
+    /// Returns `Some` read string, or `None` if it failed.
+    pub fn read_file(&self, path: &str) -> Option<String> {
+        let mut f = match File::open(path) {
+            Ok(f)  => f,
+            Err(_) => return None,
+        };
+
+        let mut s = String::new();
+
+        if f.read_to_string(&mut s).is_err() {
+            None
+        } else {
+            Some(s)
+        }
+    }
+
     /// Returns flags containing information about the interpreter.
     ///
     /// The flags are in the format returned by the 'y'-instruction to a running
     /// Befunge-98 program.
     pub fn flags(&self) -> Value {
-        0b00001
+        0b00111
     }
 
     /// Returns a value indicating the behavior of the '='-instruction.

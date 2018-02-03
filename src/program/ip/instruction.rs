@@ -374,6 +374,125 @@ impl Ip {
         }
     }
 
+    pub fn write_file(&mut self, space: &Space, io: &mut IoContext) {
+        if let Some(path) = self.pop_string() {
+            let v = self.pop();
+            let y = self.pop();
+            let x = self.pop();
+            let h = self.pop();
+            let w = self.pop();
+
+            let trim_right = v & 1 == 1;
+
+            let mut i;
+            let mut j = y;
+            let mut s = String::new();
+            let mut spaces = 0;
+            let mut newlines = 0;
+
+            while j - y < h {
+                i = x;
+
+                while i - x < w {
+                    let Point { x: sx, y: sy } = self.storage;
+                    let v = space.get(Point { x: i + sx, y: j + sy });
+
+                    if v == ' ' as i32 {
+                        spaces += 1;
+                    } else {
+                        for _ in 0..spaces {
+                            s.push(' ');
+                        }
+
+                        spaces = 0;
+
+                        if i == x {
+                            for _ in 0..newlines {
+                                s.push('\n');
+                            }
+                            newlines = 0;
+                        }
+
+                        if let Some(c) = ::std::char::from_u32(v as u32) {
+                            s.push(c);
+                        } else {
+                            self.reverse();
+                            return;
+                        }
+                    }
+
+                    i += 1;
+                }
+
+                if !trim_right {
+                    for _ in 0..spaces {
+                        s.push(' ');
+                    }
+                }
+
+                j += 1;
+                newlines += 1;
+                spaces = 0;
+            }
+
+            if !trim_right {
+                for _ in 1..newlines {
+                    s.push('\n');
+                }
+            }
+
+            s.push('\n');
+
+            if !io.write_file(&path, &s) {
+                self.reverse();
+            }
+        } else {
+            self.reverse();
+        }
+    }
+
+    pub fn read_file(&mut self, space: &mut Space, io: &mut IoContext) {
+        if let Some(path) = self.pop_string() {
+            let v = self.pop();
+            let y = self.pop();
+            let x = self.pop();
+
+            let linear = v & 1 == 1;
+
+            let mut i = x;
+            let mut j = y;
+
+            let mut w = 0;
+
+            if let Some(s) = io.read_file(&path) {
+                for c in s.chars() {
+                    if c == '\n' && !linear {
+                        i = x;
+                        j += 1;
+                    } else if linear || c != '\r' {
+                        if c != ' ' {
+                            let Point { x: sx, y: sy } = self.storage;
+                            space.set(Point { x: i + sx, y: j + sy }, c as i32);
+                        }
+                        i += 1;
+                        if i - x > w {
+                            w = i - x;
+                        }
+                    }
+                }
+
+                self.push(w);
+                self.push(j - y);
+                self.push(x);
+                self.push(y);
+            } else {
+                self.reverse();
+            }
+        } else {
+            self.reverse();
+        }
+    }
+
     // Concurrency
 
     pub fn split(&mut self, space: &Space, new_id: i32) -> Ip {

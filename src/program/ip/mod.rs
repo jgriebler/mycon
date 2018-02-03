@@ -144,13 +144,13 @@ impl Ip {
             'f'         => self.push_fifteen(),
             'g'         => self.get(space),
             'h'         => self.reverse(),
-            'i'         => self.reverse(), // TODO implement
+            'i'         => self.read_file(space, io),
             'j'         => self.jump(space),
             'k'         => return self.iterate(space, io, new_id),
             'l'         => self.reverse(),
             'm'         => self.reverse(),
             'n'         => self.clear(),
-            'o'         => self.reverse(), // TODO implement
+            'o'         => self.write_file(space, io),
             'p'         => self.put(space),
             'q'         => return ExecResult::Terminate(self.pop()),
             'r'         => self.reverse(),
