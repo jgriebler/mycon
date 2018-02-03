@@ -47,6 +47,10 @@ impl IoContext {
     ///
     /// Returns `Some` read number if it succeeded, `None` otherwise.
     pub fn read_decimal(&mut self) -> Option<i32> {
+        if self.output.flush().is_err() {
+            return None;
+        }
+
         if self.input_buffer.is_empty() {
             if self.input.read_line(&mut self.input_buffer).is_err() {
                 return None;
@@ -79,6 +83,10 @@ impl IoContext {
     ///
     /// Returns `Some` read `char` if it succeeded, `None` otherwise.
     pub fn read_char(&mut self) -> Option<char> {
+        if self.output.flush().is_err() {
+            return None;
+        }
+
         if self.input_buffer.is_empty() {
             if self.input.read_line(&mut self.input_buffer).is_err() {
                 return None;
