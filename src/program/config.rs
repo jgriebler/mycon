@@ -8,6 +8,12 @@ use std::iter;
 
 use data::Value;
 
+#[derive(PartialEq, Eq)]
+enum FileAccess {
+    Allow,
+    Deny,
+}
+
 /// Tracks information on how the program interacts with its environment.
 ///
 /// An `IoContext` keeps track of where input should be read, where output
@@ -17,6 +23,7 @@ pub struct IoContext {
     input: Box<BufRead>,
     input_buffer: String,
     output: Box<Write>,
+    file_access: FileAccess,
 }
 
 impl IoContext {
@@ -26,6 +33,7 @@ impl IoContext {
             input: Box::new(BufReader::new(io::stdin())),
             input_buffer: String::new(),
             output: Box::new(io::stdout()),
+            file_access: FileAccess::Allow,
         }
     }
 
@@ -109,6 +117,11 @@ impl IoContext {
     ///
     /// Returns `true` if it succeeded, `false` otherwise.
     pub fn write_file(&self, path: &str, data: &str) -> bool {
+        match self.file_access {
+            FileAccess::Allow => (),
+            FileAccess::Deny  => return false,
+        }
+
         let mut f = match File::create(path) {
             Ok(f)  => f,
             Err(_) => return false,
@@ -121,6 +134,11 @@ impl IoContext {
     ///
     /// Returns `Some` read string, or `None` if it failed.
     pub fn read_file(&self, path: &str) -> Option<String> {
+        match self.file_access {
+            FileAccess::Allow => (),
+            FileAccess::Deny  => return None,
+        }
+
         let mut f = match File::open(path) {
             Ok(f)  => f,
             Err(_) => return None,
@@ -140,7 +158,12 @@ impl IoContext {
     /// The flags are in the format returned by the 'y'-instruction to a running
     /// Befunge-98 program.
     pub fn flags(&self) -> Value {
-        0b00111
+        let mut flags = 1;
+        if self.file_access != FileAccess::Deny {
+            flags |= 0b110;
+        }
+
+        flags
     }
 
     /// Returns a value indicating the behavior of the '='-instruction.
