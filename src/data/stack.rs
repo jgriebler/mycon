@@ -255,3 +255,44 @@ impl StackStack {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn stack_push_pop() {
+        let mut stack = StackStack::new();
+
+        stack.push(3);
+        stack.push(5);
+
+        assert_eq!(5, stack.pop());
+        assert_eq!(3, stack.pop());
+        assert_eq!(0, stack.pop());
+    }
+
+    #[test]
+    fn stack_clear() {
+        let mut stack = StackStack::new();
+
+        stack.push(1);
+        stack.push(2);
+        stack.push(3);
+        stack.clear();
+
+        assert_eq!(0, stack.pop());
+    }
+
+    #[test]
+    fn stack_string() {
+        let mut stack = StackStack::new();
+
+        stack.push(1);
+
+        assert_eq!(11, stack.push_string("Befunge-98"));
+        assert_eq!(Some(String::from("Befunge-98")), stack.pop_string());
+        assert_eq!(1, stack.pop());
+        assert_eq!(0, stack.pop());
+    }
+}

@@ -3,6 +3,8 @@
 pub mod config;
 pub mod ip;
 
+use std::io::{BufRead, Write};
+
 use data::Value;
 use data::space::Space;
 use self::config::IoContext;
@@ -13,17 +15,17 @@ use self::ip::{Ip, ExecResult};
 /// This manages all data associated to the running program, like the
 /// addressable space, all currently active instruction pointers and program
 /// configuration.
-pub struct Program {
+pub struct Program<'a> {
     space: Space,
     ips: Vec<Ip>,
     current: usize,
     exit: Option<Value>,
-    io: IoContext,
+    io: IoContext<'a>,
     new_id: Value,
 }
 
-impl Program {
-    fn init(space: Space) -> Program {
+impl<'a> Program<'a> {
+    fn init(space: Space, io: IoContext<'a>) -> Program<'a> {
         let mut ip = Ip::new();
         ip.find_command(&space);
 
@@ -32,19 +34,26 @@ impl Program {
             ips: vec![ip],
             current: 0,
             exit: None,
-            io: IoContext::stdio(),
+            io,
             new_id: 1,
         }
     }
 
     /// Creates a new empty `Program`.
-    pub fn new() -> Program {
-        Program::init(Space::new())
+    pub fn new() -> Program<'static> {
+        Program::init(Space::new(), IoContext::stdio())
     }
 
     /// Initializes a `Program` with the given source code.
-    pub fn read(code: &str) -> Program {
-        Program::init(Space::from(code))
+    pub fn read(code: &str) -> Program<'static> {
+        Program::init(Space::from(code), IoContext::stdio())
+    }
+
+    pub fn read_with_io<R, W>(code: &str, input: &'a mut R, output: &'a mut W) -> Program<'a>
+        where R: BufRead,
+              W: Write,
+    {
+        Program::init(Space::from(code), IoContext::with_io(input, output))
     }
 
     /// Executes the current instruction of a single [`Ip`].

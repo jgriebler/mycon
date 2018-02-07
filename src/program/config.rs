@@ -8,6 +8,57 @@ use std::iter;
 
 use data::Value;
 
+enum Input<'a> {
+    Owned(Box<BufRead>),
+    Borrowed(&'a mut BufRead),
+}
+
+impl<'a> Read for Input<'a> {
+    fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
+        match self {
+            &mut Input::Owned(ref mut r)    => r.read(buf),
+            &mut Input::Borrowed(ref mut r) => r.read(buf),
+        }
+    }
+}
+
+impl<'a> BufRead for Input<'a> {
+    fn fill_buf(&mut self) -> io::Result<&[u8]> {
+        match self {
+            &mut Input::Owned(ref mut r)    => r.fill_buf(),
+            &mut Input::Borrowed(ref mut r) => r.fill_buf(),
+        }
+    }
+
+    fn consume(&mut self, amt: usize) {
+        match self {
+            &mut Input::Owned(ref mut r)    => r.consume(amt),
+            &mut Input::Borrowed(ref mut r) => r.consume(amt),
+        }
+    }
+}
+
+enum Output<'a> {
+    Owned(Box<Write>),
+    Borrowed(&'a mut Write),
+}
+
+impl<'a> Write for Output<'a> {
+    fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
+        match self {
+            &mut Output::Owned(ref mut w)    => w.write(buf),
+            &mut Output::Borrowed(ref mut w) => w.write(buf),
+        }
+    }
+
+    fn flush(&mut self) -> io::Result<()> {
+        match self {
+            &mut Output::Owned(ref mut w)    => w.flush(),
+            &mut Output::Borrowed(ref mut w) => w.flush(),
+        }
+    }
+}
+
 #[derive(PartialEq, Eq)]
 enum FileAccess {
     Allow,
@@ -19,22 +70,52 @@ enum FileAccess {
 /// An `IoContext` keeps track of where input should be read, where output
 /// should be written, what files the program may access and how to locate them,
 /// and how to react when it tries to execute a shell command.
-pub struct IoContext {
-    input: Box<BufRead>,
+pub struct IoContext<'a> {
+    input: Input<'a>,
     input_buffer: String,
-    output: Box<Write>,
+    output: Output<'a>,
     file_access: FileAccess,
 }
 
-impl IoContext {
+impl<'a> IoContext<'a> {
     /// Creates a new `IoContext` referencing the standard input and output.
-    pub fn stdio() -> IoContext {
+    pub fn stdio() -> IoContext<'static> {
         IoContext {
-            input: Box::new(BufReader::new(io::stdin())),
+            input: Input::Owned(Box::new(BufReader::new(io::stdin()))),
             input_buffer: String::new(),
-            output: Box::new(io::stdout()),
+            output: Output::Owned(Box::new(io::stdout())),
             file_access: FileAccess::Allow,
         }
+    }
+
+    pub fn with_io<R, W>(input: &'a mut R, output: &'a mut W) -> IoContext<'a>
+        where R: BufRead,
+              W: Write,
+    {
+        IoContext {
+            input: Input::Borrowed(input),
+            input_buffer: String::new(),
+            output: Output::Borrowed(output),
+            file_access: FileAccess::Allow,
+        }
+    }
+
+    /// Sets the input stream of the `IoContext`.
+    pub fn set_input<R: BufRead + 'static>(&mut self, input: R) {
+        self.input = Input::Owned(Box::new(input));
+    }
+
+    /// Sets the output stream of the `IoContext`.
+    pub fn set_output<W: Write + 'static>(&mut self, output: W) {
+        self.output = Output::Owned(Box::new(output));
+    }
+
+    pub fn input_from<R: BufRead>(&mut self, input: &'a mut R) {
+        self.input = Input::Borrowed(input);
+    }
+
+    pub fn output_to<W: Write>(&mut self, output: &'a mut W) {
+        self.output = Output::Borrowed(output);
     }
 
     /// Tries to write a number to the `IoContext`'s output stream.
