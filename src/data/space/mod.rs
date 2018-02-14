@@ -224,36 +224,102 @@ mod tests {
     use super::*;
 
     #[test]
-    fn space_get_set() {
+    fn space_get_uninit() {
+        let space = Space::new();
+
+        assert_eq!(SPACE, space.get(Point { x: 0, y: 0 }));
+    }
+
+    #[test]
+    fn space_get_empty() {
         let mut space = Space::new();
 
-        for x in 0..32 {
-            space.set(Point { x, y: 0 }, x);
+        space.set(Point { x: 0, y: 0 }, 40);
+
+        assert_eq!(SPACE, space.get(Point { x: 1, y: 0 }));
+    }
+
+    #[test]
+    fn space_set_get() {
+        let mut space = Space::new();
+
+        let position = Point { x: 3, y: 6 };
+        let value = 45;
+
+        space.set(position, value);
+
+        assert_eq!(value, space.get(position));
+    }
+
+    #[test]
+    fn space_set_get_large() {
+        let mut space = Space::new();
+
+        let position = Point { x: 2147483647, y: -1029771328 };
+        let value = 1307812;
+
+        space.set(position, value);
+
+        assert_eq!(value, space.get(position));
+    }
+
+    #[test]
+    fn space_set_get_multiple() {
+        let mut space = Space::new();
+
+        let data = [
+            (Point { x:  0, y:  0 },  12),
+            (Point { x:  3, y:  2 },   0),
+            (Point { x: -2, y: -1 }, -42),
+            (Point { x:  1, y: -3 },   6),
+        ];
+
+        for &(p, v) in data.iter() {
+            space.set(p, v);
         }
 
-        for n in 64..128 {
-            space.set(Point { x: n, y: n }, -n);
+        for &(p, v) in data.iter() {
+            assert_eq!(v, space.get(p));
         }
+    }
 
-        for x in 0..32 {
-            assert_eq!(x, space.get(Point { x, y: 0 }));
-        }
+    #[test]
+    fn space_init_bounds() {
+        let mut space = Space::new();
 
-        for n in 64..128 {
-            assert_eq!(-n, space.get(Point { x: n, y: n }));
-        }
+        let (x, y) = (2, -3);
 
-        assert_eq!(SPACE, space.get(Point { x: -42, y: 70 }));
+        space.set(Point { x, y }, 12);
+
+        assert_eq!((0, y), space.min());
+        assert_eq!((x, 0), space.max());
+    }
+
+    #[test]
+    fn space_grow_bounds() {
+        let mut space = Space::new();
+
+        space.set(Point { x: 0, y: 0 }, 42);
+
+        let (x0, y0) = (-3, 5);
+        let (x1, y1) = (2, -1);
+
+        space.set(Point { x: x0, y: y0 }, 1);
+        space.set(Point { x: x1, y: y1 }, 2);
+
+        assert_eq!((-3, -1), space.min());
+        assert_eq!((2, 5), space.max());
+    }
+
+    #[test]
+    fn space_keep_bounds() {
+        let mut space = Space::new();
+
+        space.set(Point { x: 0, y: 0 }, 42);
+        space.set(Point { x: -2, y: 3 }, SPACE);
+
         assert_eq!((0, 0), space.min());
-        assert_eq!((127, 127), space.max());
-
-        space.set(Point { x: -10, y: -10 }, SPACE);
-
-        assert_eq!((0, 0), space.min());
-
-        space.set(Point { x: -10, y: -10 }, 'x' as i32);
-
-        assert_eq!((-10, -10), space.min());
+        assert_eq!((0, 0), space.max());
     }
 
     #[test]

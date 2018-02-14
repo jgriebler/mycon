@@ -261,15 +261,36 @@ mod tests {
     use super::*;
 
     #[test]
+    fn stack_pop_empty() {
+        let mut stack = StackStack::new();
+
+        assert_eq!(0, stack.pop());
+    }
+
+    #[test]
     fn stack_push_pop() {
         let mut stack = StackStack::new();
 
-        stack.push(3);
-        stack.push(5);
+        let value = 3;
 
-        assert_eq!(5, stack.pop());
-        assert_eq!(3, stack.pop());
-        assert_eq!(0, stack.pop());
+        stack.push(value);
+
+        assert_eq!(value, stack.pop());
+    }
+
+    #[test]
+    fn stack_push_pop_multiple() {
+        let mut stack = StackStack::new();
+
+        let values = [1, 2, -3, 5, 0];
+
+        for &v in values.iter() {
+            stack.push(v);
+        }
+
+        for &v in values.iter().rev() {
+            assert_eq!(v, stack.pop());
+        }
     }
 
     #[test]
