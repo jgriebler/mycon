@@ -573,6 +573,17 @@ impl Ip {
         }
     }
 
+    pub fn system_execute(&mut self, io: &mut IoContext) {
+        if let Some(cmd) = self.pop_string() {
+            match io.execute(&cmd) {
+                Some(v) => self.push(v),
+                None    => self.reverse(),
+            }
+        } else {
+            self.reverse();
+        }
+    }
+
     pub fn get_sysinfo(&mut self, space: &Space, io: &mut IoContext) {
         let n = self.pop();
         let mut num_cells = 0;

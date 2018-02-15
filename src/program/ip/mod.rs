@@ -125,7 +125,7 @@ impl Ip {
             ':'         => self.duplicate(),
             ';'         => panic!("attempted to execute ';'"),
             '<'         => self.go_west(),
-            '='         => self.reverse(), // TODO implement
+            '='         => self.system_execute(io),
             '>'         => self.go_east(),
             '?'         => self.randomize_delta(),
             '@'         => return ExecResult::DeleteIp,

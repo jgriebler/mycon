@@ -5,6 +5,7 @@ use std::fs::File;
 use std::io;
 use std::io::{BufRead, BufReader, Read, Write};
 use std::iter;
+use std::process::Command;
 
 use data::Value;
 
@@ -65,16 +66,27 @@ enum FileAccess {
     Deny,
 }
 
+#[derive(PartialEq, Eq)]
+enum ExecAccess {
+    Allow,
+    Deny,
+}
+
+// TODO Clean up this API.
 /// Tracks information on how the program interacts with its environment.
 ///
 /// An `IoContext` keeps track of where input should be read, where output
 /// should be written, what files the program may access and how to locate them,
 /// and how to react when it tries to execute a shell command.
+///
+/// This API will soon be overhauled to provide a cleaner and more expressive
+/// interface.
 pub struct IoContext<'a> {
     input: Input<'a>,
     input_buffer: String,
     output: Output<'a>,
     file_access: FileAccess,
+    exec_access: ExecAccess,
 }
 
 impl<'a> IoContext<'a> {
@@ -85,6 +97,7 @@ impl<'a> IoContext<'a> {
             input_buffer: String::new(),
             output: Output::Owned(Box::new(io::stdout())),
             file_access: FileAccess::Allow,
+            exec_access: ExecAccess::Allow,
         }
     }
 
@@ -97,6 +110,7 @@ impl<'a> IoContext<'a> {
             input_buffer: String::new(),
             output: Output::Borrowed(output),
             file_access: FileAccess::Allow,
+            exec_access: ExecAccess::Allow,
         }
     }
 
@@ -234,14 +248,44 @@ impl<'a> IoContext<'a> {
         }
     }
 
+    /// Takes a string and tries to execute it with `sh`.
+    ///
+    /// Returns `Some` [`Value`] with `sh`'s exit code if it was able to obtain
+    /// it, and `None` otherwise.
+    ///
+    /// If a [`Value`] is returned, the exit code can (in general) not be used
+    /// to determine whether an error was raised by `sh` trying to execute the
+    /// given command, or by the command itself.
+    ///
+    /// Also, a return of `None` can mean that the attempt to execute `sh`
+    /// failed, that `sh` was terminated by a signal or that this `IoContext`'s
+    /// settings don't allow command execution.
+    ///
+    /// [`Value`]: ../data/type.Value.html
+    pub fn execute(&self, cmd: &str) -> Option<Value> {
+        if self.exec_access != ExecAccess::Deny {
+            match Command::new("sh").args(&["-c", cmd]).status() {
+                Ok(st) => st.code(),
+                Err(_) => None,
+            }
+        } else {
+            None
+        }
+    }
+
     /// Returns flags containing information about the interpreter.
     ///
     /// The flags are in the format returned by the 'y'-instruction to a running
     /// Befunge-98 program.
     pub fn flags(&self) -> Value {
         let mut flags = 1;
+
         if self.file_access != FileAccess::Deny {
-            flags |= 0b110;
+            flags |= 0x6;
+        }
+
+        if self.exec_access != ExecAccess::Deny {
+            flags |= 0x8;
         }
 
         flags
@@ -249,7 +293,11 @@ impl<'a> IoContext<'a> {
 
     /// Returns a value indicating the behavior of the '='-instruction.
     pub fn operating_paradigm(&self) -> Value {
-        0
+        if self.exec_access != ExecAccess::Deny {
+            2
+        } else {
+            0
+        }
     }
 
     /// Returns an iterator over the command-line arguments of the program.
