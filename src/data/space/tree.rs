@@ -124,5 +124,5 @@ fn get_indices(x: i32, y: i32) -> (usize, usize) {
 }
 
 fn shift(x: i32, y: i32) -> (i32, i32) {
-    (y << CHUNK_SHIFT, x << CHUNK_SHIFT)
+    (x << CHUNK_SHIFT, y << CHUNK_SHIFT)
 }

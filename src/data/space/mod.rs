@@ -5,8 +5,6 @@ mod tree;
 use super::{Value, Point, Delta, SPACE};
 use self::tree::*;
 
-// const CACHE_SIZE: usize = 4;
-
 /// The space in which a Befunge-98 program resides.
 ///
 /// Internally, the space is represented by a data structure similar to a
@@ -21,8 +19,6 @@ use self::tree::*;
 pub struct Space {
     tree: QTree,
     bounds: Bounds,
-//    cache: [Chunk; CACHE_SIZE],
-//    cache_indices: [(isize, isize); CACHE_SIZE],
 }
 
 impl Space {
