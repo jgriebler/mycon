@@ -75,13 +75,13 @@ enum ExecAccess {
 // TODO Clean up this API.
 /// Tracks information on how the program interacts with its environment.
 ///
-/// An `IoContext` keeps track of where input should be read, where output
+/// An `Environment` keeps track of where input should be read, where output
 /// should be written, what files the program may access and how to locate them,
 /// and how to react when it tries to execute a shell command.
 ///
 /// This API will soon be overhauled to provide a cleaner and more expressive
 /// interface.
-pub struct IoContext<'a> {
+pub struct Environment<'a> {
     input: Input<'a>,
     input_buffer: String,
     output: Output<'a>,
@@ -89,10 +89,10 @@ pub struct IoContext<'a> {
     exec_access: ExecAccess,
 }
 
-impl<'a> IoContext<'a> {
-    /// Creates a new `IoContext` referencing the standard input and output.
-    pub fn stdio() -> IoContext<'static> {
-        IoContext {
+impl<'a> Environment<'a> {
+    /// Creates a new `Environment` referencing the standard input and output.
+    pub fn stdio() -> Environment<'static> {
+        Environment {
             input: Input::Owned(Box::new(BufReader::new(io::stdin()))),
             input_buffer: String::new(),
             output: Output::Owned(Box::new(io::stdout())),
@@ -101,11 +101,11 @@ impl<'a> IoContext<'a> {
         }
     }
 
-    pub fn with_io<R, W>(input: &'a mut R, output: &'a mut W) -> IoContext<'a>
+    pub fn with_io<R, W>(input: &'a mut R, output: &'a mut W) -> Environment<'a>
         where R: BufRead,
               W: Write,
     {
-        IoContext {
+        Environment {
             input: Input::Borrowed(input),
             input_buffer: String::new(),
             output: Output::Borrowed(output),
@@ -114,12 +114,12 @@ impl<'a> IoContext<'a> {
         }
     }
 
-    /// Sets the input stream of the `IoContext`.
+    /// Sets the input stream of the `Environment`.
     pub fn set_input<R: BufRead + 'static>(&mut self, input: R) {
         self.input = Input::Owned(Box::new(input));
     }
 
-    /// Sets the output stream of the `IoContext`.
+    /// Sets the output stream of the `Environment`.
     pub fn set_output<W: Write + 'static>(&mut self, output: W) {
         self.output = Output::Owned(Box::new(output));
     }
@@ -132,21 +132,21 @@ impl<'a> IoContext<'a> {
         self.output = Output::Borrowed(output);
     }
 
-    /// Tries to write a number to the `IoContext`'s output stream.
+    /// Tries to write a number to the `Environment`'s output stream.
     ///
     /// Returns `true` if it succeeded, `false` otherwise.
     pub fn write_decimal(&mut self, n: i32) -> bool {
         write!(self.output, "{} ", n).is_ok()
     }
 
-    /// Tries to write a `char` to the `IoContext`'s output stream.
+    /// Tries to write a `char` to the `Environment`'s output stream.
     ///
     /// Returns `true` if it succeeded, `false` otherwise.
     pub fn write_char(&mut self, c: char) -> bool {
         write!(self.output, "{}", c).is_ok()
     }
 
-    /// Tries to read a number from the `IoContext`'s input stream.
+    /// Tries to read a number from the `Environment`'s input stream.
     ///
     /// Returns `Some` read number if it succeeded, `None` otherwise.
     pub fn read_decimal(&mut self) -> Option<i32> {
@@ -182,7 +182,7 @@ impl<'a> IoContext<'a> {
         Some(ret)
     }
 
-    /// Tries to read a `char` from the `IoContext`'s input stream.
+    /// Tries to read a `char` from the `Environment`'s input stream.
     ///
     /// Returns `Some` read `char` if it succeeded, `None` otherwise.
     pub fn read_char(&mut self) -> Option<char> {
@@ -258,10 +258,10 @@ impl<'a> IoContext<'a> {
     /// given command, or by the command itself.
     ///
     /// Also, a return of `None` can mean that the attempt to execute `sh`
-    /// failed, that `sh` was terminated by a signal or that this `IoContext`'s
-    /// settings don't allow command execution.
+    /// failed, that `sh` was terminated by a signal or that this
+    /// `Environment`'s settings don't allow command execution.
     ///
-    /// [`Value`]: ../data/type.Value.html
+    /// [`Value`]: ../../data/type.Value.html
     pub fn execute(&self, cmd: &str) -> Option<Value> {
         if self.exec_access != ExecAccess::Deny {
             match Command::new("sh").args(&["-c", cmd]).status() {
@@ -275,7 +275,7 @@ impl<'a> IoContext<'a> {
 
     /// Returns flags containing information about the interpreter.
     ///
-    /// The flags are in the format returned by the 'y'-instruction to a running
+    /// The flags are in the format returned by the `y`-instruction to a running
     /// Befunge-98 program.
     pub fn flags(&self) -> Value {
         let mut flags = 1;
@@ -291,7 +291,7 @@ impl<'a> IoContext<'a> {
         flags
     }
 
-    /// Returns a value indicating the behavior of the '='-instruction.
+    /// Returns a value indicating the behavior of the `=`-instruction.
     pub fn operating_paradigm(&self) -> Value {
         if self.exec_access != ExecAccess::Deny {
             2

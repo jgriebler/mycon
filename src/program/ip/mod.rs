@@ -5,7 +5,7 @@ mod instruction;
 use data::{Value, Point, Delta};
 use data::space::Space;
 use data::stack::StackStack;
-use super::config::IoContext;
+use super::Context;
 
 /// An instruction pointer in a running program.
 #[derive(Clone)]
@@ -45,45 +45,47 @@ impl Ip {
         space.get(self.position)
     }
 
+    /// Sets `Ip`'s identifier.
+    pub fn set_id(&mut self, id: Value) {
+        self.id = id;
+    }
+
     /// Executes a single command and moves the `Ip` to the next.
-    pub fn tick(&mut self, space: &mut Space, io: &mut IoContext, new_id: Value) -> ExecResult {
+    pub fn tick(&mut self, ctx: &mut Context) {
         if !self.string {
-            self.find_command(space);
+            self.find_command(ctx.space());
         }
 
-        let v = self.get_current(space);
+        let v = self.get_current(ctx.space());
 
         if self.string {
             if v == 34 {
                 self.string = false;
-                self.step(space);
-                self.find_command(space);
+                self.step(ctx.space());
+                self.find_command(ctx.space());
             } else {
                 self.push(v);
-                self.step(space);
+                self.step(ctx.space());
 
                 if v == 32 {
-                    self.skip_space(space);
+                    self.skip_space(ctx.space());
                 }
             }
 
-            return ExecResult::Done;
+            return;
         }
 
-        let result = if let Some(c) = ::std::char::from_u32(v as u32) {
-            self.execute(space, io, new_id, c)
+        if let Some(c) = ::std::char::from_u32(v as u32) {
+            self.execute(ctx, c);
         } else {
             self.reverse();
-            ExecResult::Done
-        };
-
-        self.step(space);
-
-        if !self.string {
-            self.find_command(space);
         }
 
-        result
+        self.step(ctx.space());
+
+        if !self.string {
+            self.find_command(ctx.space());
+        }
     }
 
     /// Advances the `Ip`'s position by one step of its current [`Delta`].
@@ -94,23 +96,23 @@ impl Ip {
     }
 
     /// Executes a single command, without moving the `Ip`'s afterwards.
-    pub fn execute(&mut self, space: &mut Space, io: &mut IoContext, new_id: Value, command: char) -> ExecResult {
+    pub fn execute(&mut self, ctx: &mut Context, command: char) {
         match command {
             ' '         => panic!("attempted to execute ' '"),
             '!'         => self.negate(),
             '"'         => self.string_mode(),
-            '#'         => self.trampoline(space),
+            '#'         => self.trampoline(ctx),
             '$'         => self.discard(),
             '%'         => self.rem(),
-            '&'         => self.input_decimal(io),
-            '\''        => self.fetch_char(space),
+            '&'         => self.input_decimal(ctx),
+            '\''        => self.fetch_char(ctx),
             '('         => self.load_semantics(),
             ')'         => self.unload_semantics(),
             '*'         => self.mul(),
             '+'         => self.add(),
-            ','         => self.output_char(io),
+            ','         => self.output_char(ctx),
             '-'         => self.sub(),
-            '.'         => self.output_decimal(io),
+            '.'         => self.output_decimal(ctx),
             '/'         => self.div(),
             '0'         => self.push_zero(),
             '1'         => self.push_one(),
@@ -125,10 +127,10 @@ impl Ip {
             ':'         => self.duplicate(),
             ';'         => panic!("attempted to execute ';'"),
             '<'         => self.go_west(),
-            '='         => self.system_execute(io),
+            '='         => self.system_execute(ctx),
             '>'         => self.go_east(),
             '?'         => self.randomize_delta(),
-            '@'         => return ExecResult::DeleteIp,
+            '@'         => self.stop(ctx),
             'A' ... 'Z' => self.reverse(), // TODO implement
             '['         => self.turn_left(),
             '\\'        => self.swap(),
@@ -142,34 +144,32 @@ impl Ip {
             'd'         => self.push_thirteen(),
             'e'         => self.push_fourteen(),
             'f'         => self.push_fifteen(),
-            'g'         => self.get(space),
+            'g'         => self.get(ctx),
             'h'         => self.reverse(),
-            'i'         => self.read_file(space, io),
-            'j'         => self.jump(space),
-            'k'         => return self.iterate(space, io, new_id),
+            'i'         => self.read_file(ctx),
+            'j'         => self.jump(ctx),
+            'k'         => self.iterate(ctx),
             'l'         => self.reverse(),
             'm'         => self.reverse(),
             'n'         => self.clear(),
-            'o'         => self.write_file(space, io),
-            'p'         => self.put(space),
-            'q'         => return ExecResult::Terminate(self.pop()),
+            'o'         => self.write_file(ctx),
+            'p'         => self.put(ctx),
+            'q'         => self.terminate(ctx),
             'r'         => self.reverse(),
-            's'         => self.store_char(space),
-            't'         => return ExecResult::AddIp(self.split(space, new_id)),
+            's'         => self.store_char(ctx),
+            't'         => self.split(ctx),
             'u'         => self.dig(),
             'v'         => self.go_south(),
             'w'         => self.compare(),
             'x'         => self.absolute_delta(),
-            'y'         => self.get_sysinfo(space, io),
+            'y'         => self.get_sysinfo(ctx),
             'z'         => (),
             '{'         => self.begin_block(),
             '|'         => self.if_north_south(),
             '}'         => self.end_block(),
-            '~'         => self.input_char(io),
+            '~'         => self.input_char(ctx),
             _           => self.reverse(),
         }
-
-        ExecResult::Done
     }
 
     /// Sets the `Ip`'s [`Delta`] to a new value.
@@ -260,28 +260,4 @@ impl Ip {
             self.step(space);
         }
     }
-}
-
-/// The result of executing an instruction.
-///
-/// The variant indicates which further steps need to be taken by the caller to
-/// update its information on the current program state.
-pub enum ExecResult {
-    /// Nothing needs to be done.
-    Done,
-
-    /// The instruction created a new [`Ip`] that should be added to the list.
-    ///
-    /// [`Ip`]: struct.Ip.html
-    AddIp(Ip),
-
-    /// The [`Ip`] executing the instruction got stopped and should be deleted.
-    ///
-    /// [`Ip`]: struct.Ip.html
-    DeleteIp,
-
-    /// The program should be terminated with the given [`Value`].
-    ///
-    /// [`Value`]: ../../data/type.Value.html
-    Terminate(Value),
 }

@@ -2,9 +2,8 @@ use chrono::{Utc, Datelike, Timelike};
 use rand;
 
 use data::{Value, Point, Delta};
-use data::space::Space;
-use program::config::IoContext;
-use super::{Ip, ExecResult};
+use program::Context;
+use super::Ip;
 
 const HANDPRINT: i32 = 0x4a474d59;
 const VERSION: &'static str = env!("CARGO_PKG_VERSION");
@@ -29,9 +28,9 @@ impl Ip {
         self.set_delta(Delta { dx: 0, dy: -1 });
     }
 
-    pub fn trampoline(&mut self, space: &Space) {
-        if !space.is_last(self.position, self.delta) {
-            self.step(&space);
+    pub fn trampoline(&mut self, ctx: &Context) {
+        if !ctx.space().is_last(self.position, self.delta) {
+            self.step(ctx.space());
         }
     }
 
@@ -66,14 +65,22 @@ impl Ip {
         self.set_delta(Delta { dx, dy });
     }
 
-    pub fn jump(&mut self, space: &Space) {
+    pub fn jump(&mut self, ctx: &Context) {
         let n = self.pop();
         let delta = self.delta;
 
         self.delta *= n;
-        self.step(space);
+        self.step(ctx.space());
 
         self.delta = delta;
+    }
+
+    pub fn stop(&mut self, ctx: &mut Context) {
+        ctx.delete_ip();
+    }
+
+    pub fn terminate(&mut self, ctx: &mut Context) {
+        ctx.terminate(self.pop());
     }
 
     // Logic
@@ -302,57 +309,57 @@ impl Ip {
         self.string = true;
     }
 
-    pub fn fetch_char(&mut self, space: &Space) {
-        let v = if space.is_last(self.position, self.delta) {
+    pub fn fetch_char(&mut self, ctx: &Context) {
+        let v = if ctx.space().is_last(self.position, self.delta) {
             32
         } else {
-            space.get(self.position + self.delta)
+            ctx.space().get(self.position + self.delta)
         };
 
         self.push(v);
-        self.step(space);
+        self.step(ctx.space());
     }
 
-    pub fn store_char(&mut self, space: &mut Space) {
+    pub fn store_char(&mut self, ctx: &mut Context) {
         let v = self.pop();
 
-        space.set(self.position + self.delta, v);
-        self.step(space);
+        ctx.space_mut().set(self.position + self.delta, v);
+        self.step(ctx.space());
     }
 
     // Reflection
 
-    pub fn get(&mut self, space: &Space) {
+    pub fn get(&mut self, ctx: &Context) {
         let dy = self.pop();
         let dx = self.pop();
 
-        let v = space.get(self.storage + Delta { dx, dy });
+        let v = ctx.space().get(self.storage + Delta { dx, dy });
         self.push(v);
     }
 
-    pub fn put(&mut self, space: &mut Space) {
+    pub fn put(&mut self, ctx: &mut Context) {
         let dy = self.pop();
         let dx = self.pop();
         let v = self.pop();
 
-        space.set(self.storage + Delta { dx, dy }, v);
+        ctx.space_mut().set(self.storage + Delta { dx, dy }, v);
     }
 
     // Input/Output
 
-    pub fn output_decimal(&mut self, io: &mut IoContext) {
+    pub fn output_decimal(&mut self, ctx: &mut Context) {
         let v = self.pop();
 
-        if !io.write_decimal(v) {
+        if !ctx.env_mut().write_decimal(v) {
             self.reverse();
         }
     }
 
-    pub fn output_char(&mut self, io: &mut IoContext) {
+    pub fn output_char(&mut self, ctx: &mut Context) {
         let v = self.pop();
 
         if let Some(c) = ::std::char::from_u32(v as u32) {
-            if !io.write_char(c) {
+            if !ctx.env_mut().write_char(c) {
                 self.reverse();
             }
         } else {
@@ -360,21 +367,21 @@ impl Ip {
         }
     }
 
-    pub fn input_decimal(&mut self, io: &mut IoContext) {
-        match io.read_decimal() {
+    pub fn input_decimal(&mut self, ctx: &mut Context) {
+        match ctx.env_mut().read_decimal() {
             Some(v) => self.push(v),
             None    => self.reverse(),
         }
     }
 
-    pub fn input_char(&mut self, io: &mut IoContext) {
-        match io.read_char() {
+    pub fn input_char(&mut self, ctx: &mut Context) {
+        match ctx.env_mut().read_char() {
             Some(v) => self.push(v as i32),
             None    => self.reverse(),
         }
     }
 
-    pub fn write_file(&mut self, space: &Space, io: &mut IoContext) {
+    pub fn write_file(&mut self, ctx: &mut Context) {
         if let Some(path) = self.pop_string() {
             let v = self.pop();
             let y = self.pop();
@@ -395,7 +402,7 @@ impl Ip {
 
                 while i - x < w {
                     let Point { x: sx, y: sy } = self.storage;
-                    let v = space.get(Point { x: i + sx, y: j + sy });
+                    let v = ctx.space().get(Point { x: i + sx, y: j + sy });
 
                     if v == ' ' as i32 {
                         spaces += 1;
@@ -443,7 +450,7 @@ impl Ip {
 
             s.push('\n');
 
-            if !io.write_file(&path, &s) {
+            if !ctx.env_mut().write_file(&path, &s) {
                 self.reverse();
             }
         } else {
@@ -451,7 +458,7 @@ impl Ip {
         }
     }
 
-    pub fn read_file(&mut self, space: &mut Space, io: &mut IoContext) {
+    pub fn read_file(&mut self, ctx: &mut Context) {
         if let Some(path) = self.pop_string() {
             let v = self.pop();
             let y = self.pop();
@@ -464,7 +471,7 @@ impl Ip {
 
             let mut w = 0;
 
-            if let Some(s) = io.read_file(&path) {
+            if let Some(s) = ctx.env().read_file(&path) {
                 for c in s.chars() {
                     if c == '\n' && !linear {
                         i = x;
@@ -472,7 +479,7 @@ impl Ip {
                     } else if linear || c != '\r' {
                         if c != ' ' {
                             let Point { x: sx, y: sy } = self.storage;
-                            space.set(Point { x: i + sx, y: j + sy }, c as i32);
+                            ctx.space_mut().set(Point { x: i + sx, y: j + sy }, c as i32);
                         }
                         i += 1;
                         if i - x > w {
@@ -495,15 +502,14 @@ impl Ip {
 
     // Concurrency
 
-    pub fn split(&mut self, space: &Space, new_id: i32) -> Ip {
+    pub fn split(&mut self, ctx: &mut Context) {
         let mut ip = self.clone();
 
-        ip.id = new_id;
         ip.reverse();
-        ip.step(space);
-        ip.find_command(space);
+        ip.step(ctx.space());
+        ip.find_command(ctx.space());
 
-        ip
+        ctx.add_ip(ip);
     }
 
     // Fingerprints
@@ -548,34 +554,33 @@ impl Ip {
 
     // Other
 
-    pub fn iterate(&mut self, space: &mut Space, io: &mut IoContext, new_id: Value) -> ExecResult {
+    pub fn iterate(&mut self, ctx: &mut Context) {
         let n = self.pop();
 
         if n <= 0 {
             if n == 0 {
-                self.step(space);
-                self.find_command(space);
+                self.step(ctx.space());
+                self.find_command(ctx.space());
             }
-            return ExecResult::Done;
+            return;
         }
 
-        let v = self.peek_command(space);
+        let v = self.peek_command(ctx.space());
         if let Some(c) = ::std::char::from_u32(v as u32) {
             if !is_idempotent(c) {
                 for _ in 1..n {
-                    self.execute(space, io, new_id, c);
+                    self.execute(ctx, c);
                 }
             }
-            self.execute(space, io, new_id, c)
+            self.execute(ctx, c);
         } else {
             self.reverse();
-            ExecResult::Done
         }
     }
 
-    pub fn system_execute(&mut self, io: &mut IoContext) {
+    pub fn system_execute(&mut self, ctx: &mut Context) {
         if let Some(cmd) = self.pop_string() {
-            match io.execute(&cmd) {
+            match ctx.env_mut().execute(&cmd) {
                 Some(v) => self.push(v),
                 None    => self.reverse(),
             }
@@ -584,9 +589,12 @@ impl Ip {
         }
     }
 
-    pub fn get_sysinfo(&mut self, space: &Space, io: &mut IoContext) {
+    pub fn get_sysinfo(&mut self, ctx: &mut Context) {
         let n = self.pop();
         let mut num_cells = 0;
+
+        let space = ctx.space();
+        let io = ctx.env();
 
         let sizes = self.stacks.stack_sizes();
 
@@ -601,8 +609,8 @@ impl Ip {
         num_cells += 2;
         self.push(0);
         self.push(0);
-        for a in io.cmd_args() {
-            num_cells += self.push_string(&a);
+        for ref a in io.cmd_args() {
+            num_cells += self.push_string(a);
         }
 
         // Size of each stack
@@ -707,7 +715,7 @@ impl Ip {
 
 fn is_idempotent(c: char) -> bool {
     match c {
-        '<' | '>' | '?' | '@' | '^' | 'n' | 'q' | 't' | 'v' | 'z' => true,
+        '<' | '>' | '?' | '@' | '^' | 'n' | 'q' | 'v' | 'z' => true,
         _                                                         => false,
     }
 }
