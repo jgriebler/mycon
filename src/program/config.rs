@@ -178,7 +178,7 @@ impl<'a> Environment<'a> {
         }
 
         self.input_buffer.drain(0..stop);
-        
+
         Some(ret)
     }
 

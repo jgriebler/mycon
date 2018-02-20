@@ -11,7 +11,7 @@ type Stack = Vec<Value>;
 /// This is simply a stack of stacks, each stack storing [`Value`]s. The stack
 /// stack always contains at least a single stack, though the individual stacks
 /// may be empty.
-/// 
+///
 /// [`Value`]: ../type.Value.html
 /// [`Ip`]: ../../program/ip/struct.Ip.html
 #[derive(Clone, Debug)]
