@@ -30,6 +30,9 @@ pub trait Tree: Default {
 
     fn get_chunk(&self, x: i32, y: i32) -> Chunk;
     fn set_chunk(&mut self, x: i32, y: i32, chunk: Chunk);
+
+    fn set_line<I>(&mut self, y: i32, values: &mut I) -> bool
+        where I: Iterator<Item = Value>;
 }
 
 impl Default for Chunk {
@@ -57,6 +60,23 @@ impl Tree for Chunk {
 
     fn set_chunk(&mut self, _: i32, _: i32, chunk: Chunk) {
         *self = chunk
+    }
+
+    fn set_line<I>(&mut self, y: i32, values: &mut I) -> bool
+        where I: Iterator<Item = Value>
+    {
+        let (mut i, j) = get_indices(0, y);
+
+        while let Some(value) = values.next() {
+            self.data[i][j] = value;
+            i += 1;
+
+            if i == CHUNK_SIZE {
+                return false;
+            }
+        }
+
+        return true;
     }
 }
 
@@ -115,6 +135,35 @@ impl<T: Tree> Tree for Node<T> {
 
         tree.set_chunk(x, y, chunk);
         self.data[i][j] = Some(tree);
+    }
+
+    fn set_line<I>(&mut self, y: i32, values: &mut I) -> bool
+        where I: Iterator<Item = Value>
+    {
+        let (mut i, j) = get_indices(0, y);
+        let (_, y) = shift(0, y);
+
+        loop {
+            let mut tree = match self.data[i][j].take() {
+                Some(tree) => tree,
+                None       => Box::new(T::default()),
+            };
+
+            let done = tree.set_line(y, values);
+            self.data[i][j] = Some(tree);
+
+            if done {
+                return true;
+            }
+
+            if i == CHUNK_SIZE {
+                break;
+            }
+
+            i += 1;
+        }
+
+        return false;
     }
 }
 

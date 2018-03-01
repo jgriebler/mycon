@@ -151,6 +151,13 @@ impl Space {
 
         last_x || last_y
     }
+
+    fn set_line(&mut self, y: i32, line: &str) {
+        self.tree.set_line(y, &mut line.chars().map(|c| c as i32).filter(|&v| v != 12));
+        // This will set the bounds too large when the line contains a form feed
+        // or a trailing space. TODO Fix that.
+        self.bounds.update(Point { x: line.len() as i32 - 1, y });
+    }
 }
 
 impl<'a> From<&'a str> for Space {
@@ -158,17 +165,8 @@ impl<'a> From<&'a str> for Space {
     fn from(code: &'a str) -> Space {
         let mut space = Space::new();
 
-        let mut x = 0;
-        let mut y = 0;
-
-        for c in code.chars() {
-            if c == '\n' {
-                x = 0;
-                y += 1;
-            } else if c != '\r' && c != 12 as char {
-                space.set(Point { x, y }, Value::from(c as i32));
-                x += 1;
-            }
+        for (y, l) in code.lines().enumerate() {
+            space.set_line(y as i32, l);
         }
 
         space
