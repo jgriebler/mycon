@@ -12,7 +12,7 @@ const SPACE: i32 = ' ' as i32;
 pub type Value = i32;
 
 /// A point in funge space.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub struct Point {
     /// The x coordinate of the point.
     pub x: i32,
@@ -27,7 +27,7 @@ impl fmt::Display for Point {
 }
 
 /// An offset vector in funge space.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub struct Delta {
     /// The x component of the offset vector.
     pub dx: i32,

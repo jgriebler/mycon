@@ -16,8 +16,9 @@ use self::tree::*;
 /// written to a previously empty region. An uninitialized portion of the tree
 /// represents a region containing only empty space (' ' characters), which is
 /// completely transparent from the point of view of the program.
+#[derive(Clone)]
 pub struct Space {
-    tree: QTree,
+    tree: FungeTree,
     bounds: Bounds,
 }
 
@@ -25,7 +26,7 @@ impl Space {
     /// Creates a new empty `Space`.
     pub fn new() -> Space {
         Space {
-            tree: QTree::default(),
+            tree: FungeTree::default(),
             bounds: Bounds::new(),
         }
     }
@@ -173,6 +174,7 @@ impl<'a> From<&'a str> for Space {
     }
 }
 
+#[derive(Clone)]
 struct Bounds {
     min_x: i32,
     min_y: i32,
