@@ -78,7 +78,7 @@ impl Ip {
         if let Some(c) = ::std::char::from_u32(v as u32) {
             self.execute(ctx, c);
         } else {
-            self.reverse();
+            self.reflect();
         }
 
         self.step(ctx.space());
@@ -131,7 +131,7 @@ impl Ip {
             '>'         => self.go_east(),
             '?'         => self.randomize_delta(),
             '@'         => self.stop(ctx),
-            'A' ... 'Z' => self.reverse(), // TODO implement
+            'A' ... 'Z' => self.reflect(), // TODO implement
             '['         => self.turn_left(),
             '\\'        => self.swap(),
             ']'         => self.turn_right(),
@@ -145,17 +145,17 @@ impl Ip {
             'e'         => self.push_fourteen(),
             'f'         => self.push_fifteen(),
             'g'         => self.get(ctx),
-            'h'         => self.reverse(),
+            'h'         => self.reflect(),
             'i'         => self.read_file(ctx),
             'j'         => self.jump(ctx),
             'k'         => self.iterate(ctx),
-            'l'         => self.reverse(),
-            'm'         => self.reverse(),
+            'l'         => self.reflect(),
+            'm'         => self.reflect(),
             'n'         => self.clear(),
             'o'         => self.write_file(ctx),
             'p'         => self.put(ctx),
             'q'         => self.terminate(ctx),
-            'r'         => self.reverse(),
+            'r'         => self.reflect(),
             's'         => self.store_char(ctx),
             't'         => self.split(ctx),
             'u'         => self.dig(),
@@ -168,7 +168,7 @@ impl Ip {
             '|'         => self.if_north_south(),
             '}'         => self.end_block(),
             '~'         => self.input_char(ctx),
-            _           => self.reverse(),
+            _           => self.reflect(),
         }
     }
 
