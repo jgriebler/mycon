@@ -29,8 +29,8 @@ impl Ip {
     }
 
     pub(crate) fn trampoline(&mut self, ctx: &Context) {
-        if !ctx.space().is_last(self.position, self.delta) {
-            self.step(ctx.space());
+        if !ctx.space.is_last(self.position, self.delta) {
+            self.step(&ctx.space);
         }
     }
 
@@ -70,17 +70,17 @@ impl Ip {
         let delta = self.delta;
 
         self.delta *= n;
-        self.step(ctx.space());
+        self.step(&ctx.space);
 
         self.delta = delta;
     }
 
     pub(crate) fn stop(&mut self, ctx: &mut Context) {
-        ctx.delete_ip();
+        ctx.control.delete_ip();
     }
 
     pub(crate) fn terminate(&mut self, ctx: &mut Context) {
-        ctx.terminate(self.pop());
+        ctx.control.terminate(self.pop());
     }
 
     // Logic
@@ -310,21 +310,21 @@ impl Ip {
     }
 
     pub(crate) fn fetch_char(&mut self, ctx: &Context) {
-        let v = if ctx.space().is_last(self.position, self.delta) {
+        let v = if ctx.space.is_last(self.position, self.delta) {
             32
         } else {
-            ctx.space().get(self.position + self.delta)
+            ctx.space.get(self.position + self.delta)
         };
 
         self.push(v);
-        self.step(ctx.space());
+        self.step(&ctx.space);
     }
 
     pub(crate) fn store_char(&mut self, ctx: &mut Context) {
         let v = self.pop();
 
-        ctx.space_mut().set(self.position + self.delta, v);
-        self.step(ctx.space());
+        ctx.space.set(self.position + self.delta, v);
+        self.step(&ctx.space);
     }
 
     // Reflection
@@ -333,7 +333,7 @@ impl Ip {
         let dy = self.pop();
         let dx = self.pop();
 
-        let v = ctx.space().get(self.storage + Delta { dx, dy });
+        let v = ctx.space.get(self.storage + Delta { dx, dy });
         self.push(v);
     }
 
@@ -342,7 +342,7 @@ impl Ip {
         let dx = self.pop();
         let v = self.pop();
 
-        ctx.space_mut().set(self.storage + Delta { dx, dy }, v);
+        ctx.space.set(self.storage + Delta { dx, dy }, v);
     }
 
     // Input/Output
@@ -350,7 +350,7 @@ impl Ip {
     pub(crate) fn output_decimal(&mut self, ctx: &mut Context) {
         let v = self.pop();
 
-        if !ctx.env_mut().write_decimal(v) {
+        if !ctx.env.write_decimal(v) {
             self.reflect();
         }
     }
@@ -359,7 +359,7 @@ impl Ip {
         let v = self.pop();
 
         if let Some(c) = ::std::char::from_u32(v as u32) {
-            if !ctx.env_mut().write_char(c) {
+            if !ctx.env.write_char(c) {
                 self.reflect();
             }
         } else {
@@ -368,14 +368,14 @@ impl Ip {
     }
 
     pub(crate) fn input_decimal(&mut self, ctx: &mut Context) {
-        match ctx.env_mut().read_decimal() {
+        match ctx.env.read_decimal() {
             Some(v) => self.push(v),
             None    => self.reflect(),
         }
     }
 
     pub(crate) fn input_char(&mut self, ctx: &mut Context) {
-        match ctx.env_mut().read_char() {
+        match ctx.env.read_char() {
             Some(v) => self.push(v as i32),
             None    => self.reflect(),
         }
@@ -402,7 +402,7 @@ impl Ip {
 
                 while i - x < w {
                     let Point { x: sx, y: sy } = self.storage;
-                    let v = ctx.space().get(Point { x: i + sx, y: j + sy });
+                    let v = ctx.space.get(Point { x: i + sx, y: j + sy });
 
                     if v == ' ' as i32 {
                         spaces += 1;
@@ -450,7 +450,7 @@ impl Ip {
 
             s.push('\n');
 
-            if !ctx.env_mut().write_file(&path, &s) {
+            if !ctx.env.write_file(&path, &s) {
                 self.reflect();
             }
         } else {
@@ -471,7 +471,7 @@ impl Ip {
 
             let mut w = 0;
 
-            if let Some(s) = ctx.env().read_file(&path) {
+            if let Some(s) = ctx.env.read_file(&path) {
                 for c in s.chars() {
                     if c == '\n' && !linear {
                         i = x;
@@ -479,7 +479,7 @@ impl Ip {
                     } else if linear || c != '\r' {
                         if c != ' ' {
                             let Point { x: sx, y: sy } = self.storage;
-                            ctx.space_mut().set(Point { x: i + sx, y: j + sy }, c as i32);
+                            ctx.space.set(Point { x: i + sx, y: j + sy }, c as i32);
                         }
                         i += 1;
                         if i - x > w {
@@ -506,10 +506,10 @@ impl Ip {
         let mut ip = self.clone();
 
         ip.reflect();
-        ip.step(ctx.space());
-        ip.find_command(ctx.space());
+        ip.step(&ctx.space);
+        ip.find_command(&ctx.space);
 
-        ctx.add_ip(ip);
+        ctx.control.add_ip(ip);
     }
 
     // Fingerprints
@@ -559,13 +559,13 @@ impl Ip {
 
         if n <= 0 {
             if n == 0 {
-                self.step(ctx.space());
-                self.find_command(ctx.space());
+                self.step(&ctx.space);
+                self.find_command(&ctx.space);
             }
             return;
         }
 
-        let v = self.peek_command(ctx.space());
+        let v = self.peek_command(&ctx.space);
         if let Some(c) = ::std::char::from_u32(v as u32) {
             if !is_idempotent(c) {
                 for _ in 1..n {
@@ -580,7 +580,7 @@ impl Ip {
 
     pub(crate) fn system_execute(&mut self, ctx: &mut Context) {
         if let Some(cmd) = self.pop_string() {
-            match ctx.env_mut().execute(&cmd) {
+            match ctx.env.execute(&cmd) {
                 Some(v) => self.push(v),
                 None    => self.reflect(),
             }
@@ -593,8 +593,8 @@ impl Ip {
         let n = self.pop();
         let mut num_cells = 0;
 
-        let space = ctx.space();
-        let io = ctx.env();
+        let space = &ctx.space;
+        let io = &ctx.env;
 
         let sizes = self.stacks.stack_sizes();
 

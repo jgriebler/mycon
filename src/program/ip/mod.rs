@@ -53,22 +53,22 @@ impl Ip {
     /// Executes a single command and moves the `Ip` to the next.
     pub fn tick(&mut self, ctx: &mut Context) {
         if !self.string {
-            self.find_command(ctx.space());
+            self.find_command(&ctx.space);
         }
 
-        let v = self.get_current(ctx.space());
+        let v = self.get_current(&ctx.space);
 
         if self.string {
             if v == 34 {
                 self.string = false;
-                self.step(ctx.space());
-                self.find_command(ctx.space());
+                self.step(&ctx.space);
+                self.find_command(&ctx.space);
             } else {
                 self.push(v);
-                self.step(ctx.space());
+                self.step(&ctx.space);
 
                 if v == 32 {
-                    self.skip_space(ctx.space());
+                    self.skip_space(&ctx.space);
                 }
             }
 
@@ -81,10 +81,10 @@ impl Ip {
             self.reflect();
         }
 
-        self.step(ctx.space());
+        self.step(&ctx.space);
 
         if !self.string {
-            self.find_command(ctx.space());
+            self.find_command(&ctx.space);
         }
     }
 

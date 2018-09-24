@@ -15,31 +15,32 @@ use self::ip::Ip;
 /// This manages all data associated to the running program, like the
 /// addressable space, all currently active instruction pointers and program
 /// configuration.
-pub struct Program<'a> {
-    context: Context<'a>,
-    ips: Vec<Ip>,
-    current: usize,
-    exit: Option<Value>,
-    new_id: Value,
+pub struct Program<'env> {
+    context: Context<'env>,
+    ip_meta: IpMeta,
 }
 
-impl<'a> Program<'a> {
-    fn init(space: Space, env: Environment<'a>) -> Program<'a> {
+impl<'env> Program<'env> {
+    fn init(space: Space, env: Environment<'env>) -> Program<'env> {
         let mut ip = Ip::new();
         ip.find_command(&space);
 
         let context = Context {
             space,
             env,
-            changes: Vec::new(),
+            control: Control(Vec::new()),
         };
 
-        Program {
-            context,
+        let ip_meta = IpMeta {
             ips: vec![ip],
             current: 0,
             exit: None,
             new_id: 1,
+        };
+
+        Program {
+            context,
+            ip_meta,
         }
     }
 
@@ -53,7 +54,7 @@ impl<'a> Program<'a> {
         Program::init(Space::from(code), Environment::stdio())
     }
 
-    pub fn read_with_io<R, W>(code: &str, input: &'a mut R, output: &'a mut W) -> Program<'a>
+    pub fn read_with_io<R, W>(code: &str, input: &'env mut R, output: &'env mut W) -> Program<'env>
         where R: BufRead,
               W: Write,
     {
@@ -70,34 +71,8 @@ impl<'a> Program<'a> {
     ///
     /// [`Ip`]: ip/struct.Ip.html
     pub fn step_single(&mut self) {
-        self.ips[self.current].tick(&mut self.context);
-        let mut offset = 1;
-
-        for result in self.context.changes.drain(..) {
-            match result {
-                ExecResult::AddIp(mut new) => {
-                    new.set_id(self.new_id);
-                    self.new_id += 1;
-                    self.ips.insert(self.current, new);
-                    offset += 1;
-                },
-                ExecResult::DeleteIp       => {
-                    self.ips.remove(self.current);
-                    offset -= 1;
-                },
-                ExecResult::Terminate(v)   => {
-                    self.exit = Some(v);
-                },
-            }
-        }
-
-        if self.ips.is_empty() {
-            self.exit = Some(0);
-            return;
-        }
-
-        self.current += (self.ips.len() as isize + offset) as usize;
-        self.current %= self.ips.len();
+        self.ip_meta.ips[self.ip_meta.current].tick(&mut self.context);
+        self.context.commit_changes(&mut self.ip_meta);
     }
 
     /// Executes the current instruction of every active [`Ip`].
@@ -108,12 +83,12 @@ impl<'a> Program<'a> {
     /// [`Ip`]: ip/struct.Ip.html
     /// [`step_single`]: #method.step_single
     pub fn step_all(&mut self) {
-        let now = self.current;
+        let now = self.ip_meta.current;
 
         loop {
             self.step_single();
 
-            if self.current == now {
+            if self.ip_meta.current == now || self.ip_meta.exit.is_some() {
                 break;
             }
         }
@@ -130,54 +105,24 @@ impl<'a> Program<'a> {
         loop {
             self.step_all();
 
-            if let Some(value) = self.exit {
+            if let Some(value) = self.ip_meta.exit {
                 return value;
             }
         }
     }
 }
 
-/// The state of the [`Program`] that can be manipulated by the [`Ip`].
+/// A structure to track changes done to the control state of a [`Program`] by
+/// an [`Ip`].
 ///
-/// [`Program`]: struct.Program.html
+/// Methods are provided to add a new [`Ip`], delete the current [`Ip`] and to
+/// terminate the [`Program`].
+///
 /// [`Ip`]: ip/struct.Ip.html
-pub struct Context<'a> {
-    space: Space,
-    env: Environment<'a>,
-    changes: Vec<ExecResult>,
-}
+/// [`Program`]: struct.Program.html
+pub struct Control(Vec<ExecResult>);
 
-impl<'a> Context<'a> {
-    /// Returns a reference to the [`Space`] containing the [`Ip`].
-    ///
-    /// [`Space`]: ../data/space/struct.Space.html
-    /// [`Ip`]: ip/struct.Ip.html
-    pub fn space(&self) -> &Space {
-        &self.space
-    }
-
-    /// Returns a mutable reference to the [`Space`] containing the [`Ip`].
-    ///
-    /// [`Space`]: ../data/space/struct.Space.html
-    /// [`Ip`]: ip/struct.Ip.html
-    pub fn space_mut(&mut self) -> &mut Space {
-        &mut self.space
-    }
-
-    /// Returns a reference to the [`Environment`].
-    ///
-    /// [`Environment`]: config/struct.Environment.html
-    pub fn env(&self) -> &Environment<'a> {
-        &self.env
-    }
-
-    /// Returns a mutable reference to the [`Environment`].
-    ///
-    /// [`Environment`]: config/struct.Environment.html
-    pub fn env_mut(&mut self) -> &mut Environment<'a> {
-        &mut self.env
-    }
-
+impl Control {
     /// Adds an [`Ip`] to the list.
     ///
     /// This method only takes note that this operation should be performed, the
@@ -186,7 +131,7 @@ impl<'a> Context<'a> {
     /// [`Ip`]: ip/struct.Ip.html
     /// [`Program`]: struct.Program.html
     pub fn add_ip(&mut self, ip: Ip) {
-        self.changes.push(ExecResult::AddIp(ip));
+        self.0.push(ExecResult::AddIp(ip));
     }
 
     /// Deletes the current [`Ip`] from the list.
@@ -197,7 +142,7 @@ impl<'a> Context<'a> {
     /// [`Ip`]: ip/struct.Ip.html
     /// [`Program`]: struct.Program.html
     pub fn delete_ip(&mut self) {
-        self.changes.push(ExecResult::DeleteIp);
+        self.0.push(ExecResult::DeleteIp);
     }
 
     /// Terminates the program, using the given [`Value`] as the exit status.
@@ -208,8 +153,61 @@ impl<'a> Context<'a> {
     /// [`Value`]: ../data/type.Value.html
     /// [`Program`]: struct.Program.html
     pub fn terminate(&mut self, v: Value) {
-        self.changes.push(ExecResult::Terminate(v));
+        self.0.push(ExecResult::Terminate(v));
     }
+}
+
+/// The state of the [`Program`] that can be manipulated by the [`Ip`].
+///
+/// [`Program`]: struct.Program.html
+/// [`Ip`]: ip/struct.Ip.html
+pub struct Context<'env> {
+    control: Control,
+    space: Space,
+    env: Environment<'env>,
+}
+
+impl<'env> Context<'env> {
+    /// Commits all changes registered on this `Context`.
+    ///
+    /// This method needs to be called exactly once after an instruction has
+    /// been executed.
+    pub fn commit_changes(&mut self, ip_meta: &mut IpMeta) {
+        let mut offset = 1;
+
+        for result in self.control.0.drain(..) {
+            match result {
+                ExecResult::AddIp(mut new) => {
+                    new.set_id(ip_meta.new_id);
+                    ip_meta.new_id += 1;
+                    ip_meta.ips.insert(ip_meta.current, new);
+                    offset += 1;
+                },
+                ExecResult::DeleteIp => {
+                    ip_meta.ips.remove(ip_meta.current);
+                    offset -= 1;
+                },
+                ExecResult::Terminate(v) => {
+                    ip_meta.exit = Some(v);
+                },
+            }
+        }
+
+        if ip_meta.ips.is_empty() && ip_meta.exit.is_none() {
+            ip_meta.exit = Some(0);
+            return;
+        }
+
+        ip_meta.current += (ip_meta.ips.len() as isize + offset) as usize;
+        ip_meta.current %= ip_meta.ips.len();
+    }
+}
+
+pub struct IpMeta {
+    ips: Vec<Ip>,
+    current: usize,
+    exit: Option<Value>,
+    new_id: Value,
 }
 
 enum ExecResult {
