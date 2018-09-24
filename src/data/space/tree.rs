@@ -91,9 +91,9 @@ impl<T: Tree> Tree for Node<T> {
         let (i, j) = get_indices(x, y);
         let (x, y) = shift(x, y);
 
-        match self.data[i][j] {
-            Some(ref tree) => tree.get(x, y),
-            None           => SPACE,
+        match &self.data[i][j] {
+            Some(tree) => tree.get(x, y),
+            None       => SPACE,
         }
     }
 

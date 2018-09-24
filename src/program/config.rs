@@ -17,8 +17,8 @@ enum Input<'a> {
 impl<'a> Read for Input<'a> {
     fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
         match self {
-            &mut Input::Owned(ref mut r)    => r.read(buf),
-            &mut Input::Borrowed(ref mut r) => r.read(buf),
+            Input::Owned(r)    => r.read(buf),
+            Input::Borrowed(r) => r.read(buf),
         }
     }
 }
@@ -26,15 +26,15 @@ impl<'a> Read for Input<'a> {
 impl<'a> BufRead for Input<'a> {
     fn fill_buf(&mut self) -> io::Result<&[u8]> {
         match self {
-            &mut Input::Owned(ref mut r)    => r.fill_buf(),
-            &mut Input::Borrowed(ref mut r) => r.fill_buf(),
+            Input::Owned(r)    => r.fill_buf(),
+            Input::Borrowed(r) => r.fill_buf(),
         }
     }
 
     fn consume(&mut self, amt: usize) {
         match self {
-            &mut Input::Owned(ref mut r)    => r.consume(amt),
-            &mut Input::Borrowed(ref mut r) => r.consume(amt),
+            Input::Owned(r)    => r.consume(amt),
+            Input::Borrowed(r) => r.consume(amt),
         }
     }
 }
@@ -47,15 +47,15 @@ enum Output<'a> {
 impl<'a> Write for Output<'a> {
     fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
         match self {
-            &mut Output::Owned(ref mut w)    => w.write(buf),
-            &mut Output::Borrowed(ref mut w) => w.write(buf),
+            Output::Owned(w)    => w.write(buf),
+            Output::Borrowed(w) => w.write(buf),
         }
     }
 
     fn flush(&mut self) -> io::Result<()> {
         match self {
-            &mut Output::Owned(ref mut w)    => w.flush(),
-            &mut Output::Borrowed(ref mut w) => w.flush(),
+            Output::Owned(w)    => w.flush(),
+            Output::Borrowed(w) => w.flush(),
         }
     }
 }
@@ -301,7 +301,7 @@ impl<'a> Environment<'a> {
     }
 
     /// Returns an iterator over the command-line arguments of the program.
-    pub fn cmd_args(&self) -> iter::Rev<env::Args> {
+    pub fn cmd_args(&self) -> impl Iterator<Item = String> {
         env::args().rev()
     }
 
