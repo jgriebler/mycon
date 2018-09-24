@@ -21,7 +21,7 @@ pub struct StackStack {
 
 impl StackStack {
     /// Creates a new `StackStack` containing a single empty stack.
-    pub fn new() -> StackStack {
+    pub fn new() -> Self {
         StackStack {
             stacks: vec![Vec::new()],
         }

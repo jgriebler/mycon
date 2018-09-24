@@ -21,7 +21,7 @@ pub struct Program<'env> {
 }
 
 impl<'env> Program<'env> {
-    fn init(space: Space, env: Environment<'env>) -> Program<'env> {
+    fn init(space: Space, env: Environment<'env>) -> Self {
         let mut ip = Ip::new();
         ip.find_command(&space);
 
@@ -45,16 +45,16 @@ impl<'env> Program<'env> {
     }
 
     /// Creates a new empty `Program`.
-    pub fn new() -> Program<'static> {
+    pub fn new() -> Self {
         Program::init(Space::new(), Environment::stdio())
     }
 
     /// Initializes a `Program` with the given source code.
-    pub fn read(code: &str) -> Program<'static> {
+    pub fn read(code: &str) -> Self {
         Program::init(Space::from(code), Environment::stdio())
     }
 
-    pub fn read_with_io<R, W>(code: &str, input: &'env mut R, output: &'env mut W) -> Program<'env>
+    pub fn read_with_io<R, W>(code: &str, input: &'env mut R, output: &'env mut W) -> Self
         where R: BufRead,
               W: Write,
     {

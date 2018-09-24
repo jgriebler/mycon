@@ -91,7 +91,7 @@ pub struct Environment<'a> {
 
 impl<'a> Environment<'a> {
     /// Creates a new `Environment` referencing the standard input and output.
-    pub fn stdio() -> Environment<'static> {
+    pub fn stdio() -> Self {
         Environment {
             input: Input::Owned(Box::new(BufReader::new(io::stdin()))),
             input_buffer: String::new(),
@@ -101,7 +101,7 @@ impl<'a> Environment<'a> {
         }
     }
 
-    pub fn with_io<R, W>(input: &'a mut R, output: &'a mut W) -> Environment<'a>
+    pub fn with_io<R, W>(input: &'a mut R, output: &'a mut W) -> Self
         where R: BufRead,
               W: Write,
     {
@@ -306,7 +306,7 @@ impl<'a> Environment<'a> {
     }
 
     /// Returns an iterator over the environment variables.
-    pub fn env_vars(&self) -> env::Vars {
+    pub fn env_vars(&self) -> impl Iterator<Item = (String, String)> {
         env::vars()
     }
 }

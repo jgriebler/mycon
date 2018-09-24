@@ -37,7 +37,7 @@ pub struct Delta {
 
 impl Delta {
     /// Returns the negative to the given `Delta`.
-    pub fn reverse(&self) -> Delta {
+    pub fn reverse(&self) -> Self {
         Delta {
             dx: -self.dx,
             dy: -self.dy,
@@ -45,7 +45,7 @@ impl Delta {
     }
 
     /// Returns the original `Delta` rotated 90 degrees to the left.
-    pub fn rotate_left(&self) -> Delta {
+    pub fn rotate_left(&self) -> Self {
         Delta {
             dx: self.dy,
             dy: -self.dx,
@@ -53,7 +53,7 @@ impl Delta {
     }
 
     /// Returns the original `Delta` rotated 90 degrees to the right.
-    pub fn rotate_right(&self) -> Delta {
+    pub fn rotate_right(&self) -> Self {
         Delta {
             dx: -self.dy,
             dy: self.dx,
@@ -68,9 +68,9 @@ impl fmt::Display for Delta {
 }
 
 impl Add<Delta> for Point {
-    type Output = Point;
+    type Output = Self;
 
-    fn add(self, delta: Delta) -> Point {
+    fn add(self, delta: Delta) -> Self {
         Point {
             x: self.x + delta.dx,
             y: self.y + delta.dy,
@@ -86,9 +86,9 @@ impl AddAssign<Delta> for Point {
 }
 
 impl Sub<Delta> for Point {
-    type Output = Point;
+    type Output = Self;
 
-    fn sub(self, delta: Delta) -> Point {
+    fn sub(self, delta: Delta) -> Self {
         Point {
             x: self.x - delta.dx,
             y: self.y - delta.dy,
@@ -104,9 +104,9 @@ impl SubAssign<Delta> for Point {
 }
 
 impl Mul<i32> for Delta {
-    type Output = Delta;
+    type Output = Self;
 
-    fn mul(self, n: i32) -> Delta {
+    fn mul(self, n: i32) -> Self {
         Delta {
             dx: self.dx * n,
             dy: self.dy * n,

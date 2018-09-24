@@ -36,7 +36,7 @@ pub(crate) trait Tree: Default {
 }
 
 impl Default for Chunk {
-    fn default() -> Chunk {
+    fn default() -> Self {
         Chunk { data: [[SPACE; CHUNK_SIZE]; CHUNK_SIZE] }
     }
 }
@@ -81,7 +81,7 @@ impl Tree for Chunk {
 }
 
 impl<T: Tree> Default for Node<T> {
-    fn default() -> Node<T> {
+    fn default() -> Self {
         Node { data: Default::default() }
     }
 }

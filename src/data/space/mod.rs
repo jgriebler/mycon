@@ -24,7 +24,7 @@ pub struct Space {
 
 impl Space {
     /// Creates a new empty `Space`.
-    pub fn new() -> Space {
+    pub fn new() -> Self {
         Space {
             tree: FungeTree::default(),
             bounds: Bounds::new(),
