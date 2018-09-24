@@ -520,6 +520,7 @@ impl Ip {
         if v <= 0 {
             self.reflect();
         } else {
+            #[allow(unused)]
             let mut fp = 0;
 
             for _ in 0..v {
@@ -539,6 +540,7 @@ impl Ip {
         if v <= 0 {
             self.reflect();
         } else {
+            #[allow(unused)]
             let mut fp = 0;
 
             for _ in 0..v {
