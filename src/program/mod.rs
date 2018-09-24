@@ -46,19 +46,19 @@ impl<'env> Program<'env> {
 
     /// Creates a new empty `Program`.
     pub fn new() -> Self {
-        Program::init(Space::new(), Environment::stdio())
+        Program::init(Space::new(), Environment::new())
     }
 
     /// Initializes a `Program` with the given source code.
     pub fn read(code: &str) -> Self {
-        Program::init(Space::from(code), Environment::stdio())
+        Program::init(Space::from(code), Environment::new())
     }
 
     pub fn read_with_io<R, W>(code: &str, input: &'env mut R, output: &'env mut W) -> Self
         where R: BufRead,
               W: Write,
     {
-        Program::init(Space::from(code), Environment::with_io(input, output))
+        Program::init(Space::from(code), Environment::new().input(input).output(output))
     }
 
     /// Executes the current instruction of a single [`Ip`].

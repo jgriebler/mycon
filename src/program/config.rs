@@ -4,7 +4,6 @@ use std::env;
 use std::fs::File;
 use std::io;
 use std::io::{BufRead, BufReader, Read, Write};
-use std::iter;
 use std::process::Command;
 
 use data::Value;
@@ -60,19 +59,28 @@ impl<'a> Write for Output<'a> {
     }
 }
 
-#[derive(PartialEq, Eq)]
-enum FileAccess {
-    Allow,
+/// Specifies how to react when the program tries to access a file.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum FileView {
+    /// Gives complete access to the real filesystem.
+    Real,
+    /// Denies any file access. The 'i' and 'o' instructions will fail and the
+    /// interpreter will report that they are unsupported.
     Deny,
 }
 
-#[derive(PartialEq, Eq)]
-enum ExecAccess {
-    Allow,
+/// Specifies what action to take when the program attempts to execute a shell
+/// command.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum ExecAction {
+    /// Allow any commands issued by the program to be executed by the system
+    /// shell.
+    Real,
+    /// Denies the ability to execute commands. The '=' instruction will fail
+    /// and the interpreter will report that it is unsupported.
     Deny,
 }
 
-// TODO Clean up this API.
 /// Tracks information on how the program interacts with its environment.
 ///
 /// An `Environment` keeps track of where input should be read, where output
@@ -81,55 +89,63 @@ enum ExecAccess {
 ///
 /// This API will soon be overhauled to provide a cleaner and more expressive
 /// interface.
-pub struct Environment<'a> {
-    input: Input<'a>,
+pub struct Environment<'env> {
+    input: Input<'env>,
     input_buffer: String,
-    output: Output<'a>,
-    file_access: FileAccess,
-    exec_access: ExecAccess,
+    output: Output<'env>,
+    file_view: FileView,
+    exec_action: ExecAction,
 }
 
-impl<'a> Environment<'a> {
+impl<'env> Environment<'env> {
     /// Creates a new `Environment` referencing the standard input and output.
-    pub fn stdio() -> Self {
+    ///
+    /// The `Environment` will give the program full access to the file system
+    /// and allow it to execute shell commands.
+    pub fn new() -> Self {
         Environment {
             input: Input::Owned(Box::new(BufReader::new(io::stdin()))),
             input_buffer: String::new(),
             output: Output::Owned(Box::new(io::stdout())),
-            file_access: FileAccess::Allow,
-            exec_access: ExecAccess::Allow,
-        }
-    }
-
-    pub fn with_io<R, W>(input: &'a mut R, output: &'a mut W) -> Self
-        where R: BufRead,
-              W: Write,
-    {
-        Environment {
-            input: Input::Borrowed(input),
-            input_buffer: String::new(),
-            output: Output::Borrowed(output),
-            file_access: FileAccess::Allow,
-            exec_access: ExecAccess::Allow,
+            file_view: FileView::Real,
+            exec_action: ExecAction::Real,
         }
     }
 
     /// Sets the input stream of the `Environment`.
-    pub fn set_input<R: BufRead + 'static>(&mut self, input: R) {
-        self.input = Input::Owned(Box::new(input));
+    pub fn input(self, input: &'env mut impl BufRead) -> Self {
+        Self {
+            input: Input::Borrowed(input),
+            ..self
+        }
     }
 
     /// Sets the output stream of the `Environment`.
-    pub fn set_output<W: Write + 'static>(&mut self, output: W) {
-        self.output = Output::Owned(Box::new(output));
+    pub fn output(self, output: &'env mut impl Write) -> Self {
+        Self {
+            output: Output::Borrowed(output),
+            ..self
+        }
     }
 
-    pub fn input_from<R: BufRead>(&mut self, input: &'a mut R) {
-        self.input = Input::Borrowed(input);
+    /// Sets the [`FileView`] of the `Environment`.
+    ///
+    /// [`FileView`]: enum.FileView.html
+    pub fn file_view(self, file_view: FileView) -> Self {
+        Self {
+            file_view,
+            ..self
+        }
     }
 
-    pub fn output_to<W: Write>(&mut self, output: &'a mut W) {
-        self.output = Output::Borrowed(output);
+    /// Sets the [`ExecAction`] of the `Environment`.
+    ///
+    /// [`ExecAction`]: enum.ExecAction.html
+    pub fn exec_action(self, exec_action: ExecAction) -> Self {
+        Self {
+            exec_action,
+            ..self
+        }
     }
 
     /// Tries to write a number to the `Environment`'s output stream.
@@ -179,6 +195,8 @@ impl<'a> Environment<'a> {
 
         self.input_buffer.drain(0..stop);
 
+        // TODO Should this return 0 if no digits were encountered? That seems to be what it's
+        // doing right now. Consult the specification about this.
         Some(ret)
     }
 
@@ -212,9 +230,9 @@ impl<'a> Environment<'a> {
     ///
     /// Returns `true` if it succeeded, `false` otherwise.
     pub fn write_file(&self, path: &str, data: &str) -> bool {
-        match self.file_access {
-            FileAccess::Allow => (),
-            FileAccess::Deny  => return false,
+        match self.file_view {
+            FileView::Real => (),
+            FileView::Deny  => return false,
         }
 
         let mut f = match File::create(path) {
@@ -229,9 +247,9 @@ impl<'a> Environment<'a> {
     ///
     /// Returns `Some` read string, or `None` if it failed.
     pub fn read_file(&self, path: &str) -> Option<String> {
-        match self.file_access {
-            FileAccess::Allow => (),
-            FileAccess::Deny  => return None,
+        match self.file_view {
+            FileView::Real => (),
+            FileView::Deny  => return None,
         }
 
         let mut f = match File::open(path) {
@@ -263,7 +281,7 @@ impl<'a> Environment<'a> {
     ///
     /// [`Value`]: ../../data/type.Value.html
     pub fn execute(&self, cmd: &str) -> Option<Value> {
-        if self.exec_access != ExecAccess::Deny {
+        if self.exec_action != ExecAction::Deny {
             match Command::new("sh").args(&["-c", cmd]).status() {
                 Ok(st) => st.code(),
                 Err(_) => None,
@@ -273,18 +291,23 @@ impl<'a> Environment<'a> {
         }
     }
 
-    /// Returns flags containing information about the interpreter.
+    /// Returns flags containing information about functionality available to
+    /// the program.
     ///
     /// The flags are in the format returned by the `y`-instruction to a running
     /// Befunge-98 program.
     pub fn flags(&self) -> Value {
+        // 't' is always supported.
+        // TODO Should this be configurable?
         let mut flags = 1;
 
-        if self.file_access != FileAccess::Deny {
+        if self.file_view != FileView::Deny {
+            // 'i' and 'o' are supported.
             flags |= 0x6;
         }
 
-        if self.exec_access != ExecAccess::Deny {
+        if self.exec_action != ExecAction::Deny {
+            // '=' is supported.
             flags |= 0x8;
         }
 
@@ -293,7 +316,7 @@ impl<'a> Environment<'a> {
 
     /// Returns a value indicating the behavior of the `=`-instruction.
     pub fn operating_paradigm(&self) -> Value {
-        if self.exec_access != ExecAccess::Deny {
+        if self.exec_action != ExecAction::Deny {
             2
         } else {
             0
