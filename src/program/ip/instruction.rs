@@ -191,7 +191,7 @@ impl Ip {
 
         let n = self.pop();
 
-        self.stacks.transer_elements(n);
+        self.stacks.transfer_elements(n);
     }
 
     // Arithmetic

@@ -239,7 +239,7 @@ impl StackStack {
     /// # Panics
     ///
     /// Panics if there is only one stack on the `StackStack`.
-    pub fn transer_elements(&mut self, n: i32) {
+    pub fn transfer_elements(&mut self, n: i32) {
         assert!(!self.single());
 
         if n > 0 {
