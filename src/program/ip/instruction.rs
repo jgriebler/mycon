@@ -8,7 +8,6 @@ use super::Ip;
 const HANDPRINT: i32 = 0x4a474d59;
 const VERSION: &'static str = env!("CARGO_PKG_VERSION");
 
-#[doc(hidden)]
 impl Ip {
     // Control flow
 

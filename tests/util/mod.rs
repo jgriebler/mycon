@@ -1,13 +1,14 @@
 use std::io;
 
-use mycon::Program;
+use mycon::{Environment, Program};
 
 pub fn test_output(code: &str, output: &str) {
-    let mut input = io::empty();
+    let mut empty = io::empty();
     let mut buffer = Vec::new();
 
     {
-        let mut prog = Program::read_with_io(code, &mut input, &mut buffer);
+        let env = Environment::new().input(&mut empty).output(&mut buffer);
+        let mut prog = Program::read(code).env(env);
 
         prog.run();
     }

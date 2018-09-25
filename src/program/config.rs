@@ -73,7 +73,7 @@ pub enum FileView {
 /// command.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum ExecAction {
-    /// Allow any commands issued by the program to be executed by the system
+    /// Allows any commands issued by the program to be executed by the system
     /// shell.
     Real,
     /// Denies the ability to execute commands. The '=' instruction will fail

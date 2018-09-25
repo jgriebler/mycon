@@ -3,8 +3,6 @@
 pub mod config;
 pub mod ip;
 
-use std::io::{BufRead, Write};
-
 use data::Value;
 use data::space::Space;
 use self::config::Environment;
@@ -17,7 +15,7 @@ use self::ip::Ip;
 /// configuration.
 pub struct Program<'env> {
     context: Context<'env>,
-    ip_meta: IpMeta,
+    ip_data: IpData,
 }
 
 impl<'env> Program<'env> {
@@ -31,7 +29,7 @@ impl<'env> Program<'env> {
             control: Control(Vec::new()),
         };
 
-        let ip_meta = IpMeta {
+        let ip_data = IpData {
             ips: vec![ip],
             current: 0,
             exit: None,
@@ -40,7 +38,7 @@ impl<'env> Program<'env> {
 
         Program {
             context,
-            ip_meta,
+            ip_data,
         }
     }
 
@@ -54,11 +52,12 @@ impl<'env> Program<'env> {
         Program::init(Space::from(code), Environment::new())
     }
 
-    pub fn read_with_io<R, W>(code: &str, input: &'env mut R, output: &'env mut W) -> Self
-        where R: BufRead,
-              W: Write,
-    {
-        Program::init(Space::from(code), Environment::new().input(input).output(output))
+    /// Sets the `Program`'s [`Environment`].
+    ///
+    /// [`Environment`]: config/struct.Environment.html
+    pub fn env(mut self, env: Environment<'env>) -> Self {
+        self.context.env = env;
+        self
     }
 
     /// Executes the current instruction of a single [`Ip`].
@@ -71,8 +70,8 @@ impl<'env> Program<'env> {
     ///
     /// [`Ip`]: ip/struct.Ip.html
     pub fn step_single(&mut self) {
-        self.ip_meta.ips[self.ip_meta.current].tick(&mut self.context);
-        self.context.commit_changes(&mut self.ip_meta);
+        self.ip_data.ips[self.ip_data.current].tick(&mut self.context);
+        self.context.commit_changes(&mut self.ip_data);
     }
 
     /// Executes the current instruction of every active [`Ip`].
@@ -83,12 +82,12 @@ impl<'env> Program<'env> {
     /// [`Ip`]: ip/struct.Ip.html
     /// [`step_single`]: #method.step_single
     pub fn step_all(&mut self) {
-        let now = self.ip_meta.current;
+        let now = self.ip_data.current;
 
         loop {
             self.step_single();
 
-            if self.ip_meta.current == now || self.ip_meta.exit.is_some() {
+            if self.ip_data.current == now || self.ip_data.exit.is_some() {
                 break;
             }
         }
@@ -105,7 +104,7 @@ impl<'env> Program<'env> {
         loop {
             self.step_all();
 
-            if let Some(value) = self.ip_meta.exit {
+            if let Some(value) = self.ip_data.exit {
                 return value;
             }
         }
@@ -172,38 +171,42 @@ impl<'env> Context<'env> {
     ///
     /// This method needs to be called exactly once after an instruction has
     /// been executed.
-    pub fn commit_changes(&mut self, ip_meta: &mut IpMeta) {
+    pub fn commit_changes(&mut self, ip_data: &mut IpData) {
         let mut offset = 1;
 
         for result in self.control.0.drain(..) {
             match result {
                 ExecResult::AddIp(mut new) => {
-                    new.set_id(ip_meta.new_id);
-                    ip_meta.new_id += 1;
-                    ip_meta.ips.insert(ip_meta.current, new);
+                    new.set_id(ip_data.new_id);
+                    ip_data.new_id += 1;
+                    ip_data.ips.insert(ip_data.current, new);
                     offset += 1;
                 },
                 ExecResult::DeleteIp => {
-                    ip_meta.ips.remove(ip_meta.current);
+                    ip_data.ips.remove(ip_data.current);
                     offset -= 1;
                 },
                 ExecResult::Terminate(v) => {
-                    ip_meta.exit = Some(v);
+                    ip_data.exit = Some(v);
                 },
             }
         }
 
-        if ip_meta.ips.is_empty() && ip_meta.exit.is_none() {
-            ip_meta.exit = Some(0);
+        if ip_data.ips.is_empty() && ip_data.exit.is_none() {
+            ip_data.exit = Some(0);
             return;
         }
 
-        ip_meta.current += (ip_meta.ips.len() as isize + offset) as usize;
-        ip_meta.current %= ip_meta.ips.len();
+        ip_data.current += (ip_data.ips.len() as isize + offset) as usize;
+        ip_data.current %= ip_data.ips.len();
     }
 }
 
-pub struct IpMeta {
+/// A structure that tracks the active [`Ip`]s of a [`Program`].
+///
+/// [`Program`]: struct.Program.html
+/// [`Ip`]: ip/struct.Ip.html
+pub struct IpData {
     ips: Vec<Ip>,
     current: usize,
     exit: Option<Value>,
