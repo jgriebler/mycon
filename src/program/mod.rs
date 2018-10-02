@@ -49,7 +49,7 @@ impl<'env> Program<'env> {
 
     /// Initializes a `Program` with the given source code.
     pub fn read(code: &str) -> Self {
-        Program::init(Space::from(code), Environment::new())
+        Program::init(Space::read(code), Environment::new())
     }
 
     /// Sets the `Program`'s [`Environment`].

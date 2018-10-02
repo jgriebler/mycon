@@ -31,6 +31,17 @@ impl Space {
         }
     }
 
+    /// Creates a new `Space` containing the given source code.
+    pub(crate) fn read(code: &str) -> Self {
+        let mut space = Space::new();
+
+        for (y, l) in code.lines().enumerate() {
+            space.set_line(y as i32, l);
+        }
+
+        space
+    }
+
     /// Retrieves the [`Value`] stored at the given [`Point`] in the `Space`.
     ///
     /// If this particular part of the `Space` has not yet been initialized,
@@ -158,19 +169,6 @@ impl Space {
         // This will set the bounds too large when the line contains a form feed
         // or a trailing space. TODO Fix that.
         self.bounds.update(Point { x: line.len() as i32 - 1, y });
-    }
-}
-
-impl<'a> From<&'a str> for Space {
-    /// Creates a new `Space` containing the given source code.
-    fn from(code: &'a str) -> Space {
-        let mut space = Space::new();
-
-        for (y, l) in code.lines().enumerate() {
-            space.set_line(y as i32, l);
-        }
-
-        space
     }
 }
 
@@ -321,7 +319,7 @@ mod tests {
     #[test]
     fn space_from() {
         let code = "123\n456\n789";
-        let space = Space::from(code);
+        let space = Space::read(code);
 
         for i in 0..9 {
             assert_eq!(i + '1' as i32, space.get(Point { x: i % 3, y: i / 3 }));
