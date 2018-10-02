@@ -1,7 +1,7 @@
 //! Various types and data structures used for representing program state.
 
-pub mod space;
-pub mod stack;
+pub(crate) mod space;
+pub(crate) mod stack;
 
 use std::fmt;
 use std::ops::{Add, AddAssign, Sub, SubAssign, Mul, MulAssign};
@@ -9,15 +9,15 @@ use std::ops::{Add, AddAssign, Sub, SubAssign, Mul, MulAssign};
 const SPACE: i32 = ' ' as i32;
 
 /// The universal type of data upon which a Befunge-98 program operates.
-pub type Value = i32;
+pub(crate) type Value = i32;
 
 /// A point in funge space.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
-pub struct Point {
+pub(crate) struct Point {
     /// The x coordinate of the point.
-    pub x: i32,
+    pub(crate) x: i32,
     /// The y coordinate of the point.
-    pub y: i32,
+    pub(crate) y: i32,
 }
 
 impl fmt::Display for Point {
@@ -28,16 +28,16 @@ impl fmt::Display for Point {
 
 /// An offset vector in funge space.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
-pub struct Delta {
+pub(crate) struct Delta {
     /// The x component of the offset vector.
-    pub dx: i32,
+    pub(crate) dx: i32,
     /// The y component of the offset vector.
-    pub dy: i32,
+    pub(crate) dy: i32,
 }
 
 impl Delta {
     /// Returns the negative to the given `Delta`.
-    pub fn reverse(&self) -> Self {
+    pub(crate) fn reverse(&self) -> Self {
         Delta {
             dx: -self.dx,
             dy: -self.dy,
@@ -45,7 +45,7 @@ impl Delta {
     }
 
     /// Returns the original `Delta` rotated 90 degrees to the left.
-    pub fn rotate_left(&self) -> Self {
+    pub(crate) fn rotate_left(&self) -> Self {
         Delta {
             dx: self.dy,
             dy: -self.dx,
@@ -53,7 +53,7 @@ impl Delta {
     }
 
     /// Returns the original `Delta` rotated 90 degrees to the right.
-    pub fn rotate_right(&self) -> Self {
+    pub(crate) fn rotate_right(&self) -> Self {
         Delta {
             dx: -self.dy,
             dy: self.dx,

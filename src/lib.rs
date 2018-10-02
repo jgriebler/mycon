@@ -7,12 +7,10 @@
 extern crate chrono;
 extern crate rand;
 
-pub mod data;
-pub mod program;
+mod data;
+mod program;
 
-pub use data::{Value, Point, Delta};
-pub use data::space::Space;
-pub use data::stack::StackStack;
 pub use program::Program;
 pub use program::config::Environment;
-pub use program::ip::Ip;
+pub use program::config::FileView;
+pub use program::config::ExecAction;

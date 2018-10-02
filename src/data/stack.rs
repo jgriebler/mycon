@@ -15,13 +15,13 @@ type Stack = Vec<Value>;
 /// [`Value`]: ../type.Value.html
 /// [`Ip`]: ../../program/ip/struct.Ip.html
 #[derive(Clone, Debug)]
-pub struct StackStack {
+pub(crate) struct StackStack {
     stacks: Vec<Stack>,
 }
 
 impl StackStack {
     /// Creates a new `StackStack` containing a single empty stack.
-    pub fn new() -> Self {
+    pub(crate) fn new() -> Self {
         StackStack {
             stacks: vec![Vec::new()],
         }
@@ -40,14 +40,14 @@ impl StackStack {
     }
 
     /// Checks whether the `StackStack` contains only a single stack.
-    pub fn single(&self) -> bool {
+    pub(crate) fn single(&self) -> bool {
         self.stacks.len() == 1
     }
 
     /// Pushes a [`Value`] to the top stack on the `StackStack`.
     ///
     /// [`Value`]: ../type.Value.html
-    pub fn push(&mut self, value: Value) {
+    pub(crate) fn push(&mut self, value: Value) {
         self.top().push(value);
     }
 
@@ -57,7 +57,7 @@ impl StackStack {
     ///
     /// Afterwards, the first character in the string will be at the top of the
     /// stack. The string is delimited by a 0.
-    pub fn push_string(&mut self, s: &str) -> usize {
+    pub(crate) fn push_string(&mut self, s: &str) -> usize {
         let mut n = 1;
 
         self.push(0);
@@ -77,7 +77,7 @@ impl StackStack {
     /// If the top stack is empty, `0` will be returned.
     ///
     /// [`Value`]: ../type.Value.html
-    pub fn pop(&mut self) -> Value {
+    pub(crate) fn pop(&mut self) -> Value {
         let top = self.top();
 
         match top.pop() {
@@ -89,7 +89,7 @@ impl StackStack {
     /// Returns the `n`th cell of the top stack, counted from the top.
     ///
     /// If `n` is out of bounds, 0 will be returned.
-    pub fn nth(&mut self, n: usize) -> Value {
+    pub(crate) fn nth(&mut self, n: usize) -> Value {
         let top = self.top();
         let len = top.len();
 
@@ -104,7 +104,7 @@ impl StackStack {
     ///
     /// It will be popped character by character, until a 0 is encountered.
     /// `None` will be returned if the string is not valid UTF-8.
-    pub fn pop_string(&mut self) -> Option<String> {
+    pub(crate) fn pop_string(&mut self) -> Option<String> {
         let mut s = String::new();
 
         loop {
@@ -125,14 +125,14 @@ impl StackStack {
     }
 
     /// Completely empties the top stack on the `StackStack`.
-    pub fn clear(&mut self) {
+    pub(crate) fn clear(&mut self) {
         self.top().clear();
     }
 
     /// Returns a vector containing the size of each stack on the `StackStack`.
     ///
     /// The first element is the size of the bottommost stack.
-    pub fn stack_sizes(&self) -> Vec<usize> {
+    pub(crate) fn stack_sizes(&self) -> Vec<usize> {
         self.stacks.iter().map(Vec::len).collect()
     }
 
@@ -141,7 +141,7 @@ impl StackStack {
     /// # Panics
     ///
     /// Panics if `n` exceeds the number of elements in the top stack.
-    pub fn delete_cells(&mut self, n: usize) {
+    pub(crate) fn delete_cells(&mut self, n: usize) {
         let top = self.top();
         let len = top.len();
 
@@ -158,7 +158,7 @@ impl StackStack {
     /// Funge-98 specification.
     ///
     /// [`Point`]: ../struct.Point.html
-    pub fn create_stack(&mut self, n: i32, Point { x, y }: Point) {
+    pub(crate) fn create_stack(&mut self, n: i32, Point { x, y }: Point) {
         let mut new = Vec::new();
 
         {
@@ -199,7 +199,7 @@ impl StackStack {
     /// Panics if there is only one stack on the `StackStack`.
     ///
     /// [`Point`]: ../struct.Point.html
-    pub fn delete_stack(&mut self, n: i32) -> Point {
+    pub(crate) fn delete_stack(&mut self, n: i32) -> Point {
         use std::cmp::min;
 
         assert!(!self.single());
@@ -239,7 +239,7 @@ impl StackStack {
     /// # Panics
     ///
     /// Panics if there is only one stack on the `StackStack`.
-    pub fn transfer_elements(&mut self, n: i32) {
+    pub(crate) fn transfer_elements(&mut self, n: i32) {
         assert!(!self.single());
 
         if n > 0 {

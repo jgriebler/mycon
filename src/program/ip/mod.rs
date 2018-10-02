@@ -9,7 +9,7 @@ use super::Context;
 
 /// An instruction pointer in a running program.
 #[derive(Clone)]
-pub struct Ip {
+pub(super) struct Ip {
     id: Value,
     position: Point,
     delta: Delta,
@@ -27,7 +27,7 @@ impl Ip {
     ///
     /// [`Delta`]: ../../data/struct.Delta.html
     /// [`StackStack`]: ../../data/stack/struct.StackStack.html
-    pub fn new() -> Ip {
+    pub(super) fn new() -> Ip {
         Ip {
             id: 0,
             position: Point { x: 0, y: 0 },
@@ -41,17 +41,17 @@ impl Ip {
     /// Returns the [`Value`] at the `Ip`'s current position.
     ///
     /// [`Value`]: ../../data/struct.Value.html
-    pub fn get_current(&self, space: &Space) -> Value {
+    fn get_current(&self, space: &Space) -> Value {
         space.get(self.position)
     }
 
     /// Sets `Ip`'s identifier.
-    pub fn set_id(&mut self, id: Value) {
+    pub(super) fn set_id(&mut self, id: Value) {
         self.id = id;
     }
 
     /// Executes a single command and moves the `Ip` to the next.
-    pub fn tick(&mut self, ctx: &mut Context) {
+    pub(super) fn tick(&mut self, ctx: &mut Context) {
         if !self.string {
             self.find_command(&ctx.space);
         }
@@ -91,12 +91,12 @@ impl Ip {
     /// Advances the `Ip`'s position by one step of its current [`Delta`].
     ///
     /// [`Delta`]: ../../data/struct.Delta.html
-    pub fn step(&mut self, space: &Space) {
+    fn step(&mut self, space: &Space) {
         self.position = space.new_position(self.position, self.delta);
     }
 
     /// Executes a single command, without moving the `Ip`'s afterwards.
-    pub fn execute(&mut self, ctx: &mut Context, command: char) {
+    fn execute(&mut self, ctx: &mut Context, command: char) {
         match command {
             ' '         => panic!("attempted to execute ' '"),
             '!'         => self.negate(),
@@ -175,7 +175,7 @@ impl Ip {
     /// Sets the `Ip`'s [`Delta`] to a new value.
     ///
     /// [`Delta`]: ../../data/struct.Delta.html
-    pub fn set_delta(&mut self, delta: Delta) {
+    fn set_delta(&mut self, delta: Delta) {
         self.delta = delta;
     }
 
@@ -183,7 +183,7 @@ impl Ip {
     ///
     /// [`Value`]: ../../data/struct.Value.html
     /// [`StackStack`]: ../../data/stack/struct.StackStack.html
-    pub fn push(&mut self, value: Value) {
+    fn push(&mut self, value: Value) {
         self.stacks.push(value);
     }
 
@@ -192,7 +192,7 @@ impl Ip {
     /// Returns the number of cells that were pushed.
     ///
     /// [`StackStack`]: ../../data/stack/struct.StackStack.html
-    pub fn push_string(&mut self, s: &str) -> usize {
+    fn push_string(&mut self, s: &str) -> usize {
         self.stacks.push_string(s)
     }
 
@@ -200,14 +200,14 @@ impl Ip {
     ///
     /// [`Value`]: ../../data/struct.Value.html
     /// [`StackStack`]: ../../data/stack/struct.StackStack.html
-    pub fn pop(&mut self) -> Value {
+    fn pop(&mut self) -> Value {
         self.stacks.pop()
     }
 
     /// Pops a string off the `Ip`'s [`StackStack`].
     ///
     /// [`StackStack`]: ../../data/stack/struct.StackStack.html
-    pub fn pop_string(&mut self) -> Option<String> {
+    fn pop_string(&mut self) -> Option<String> {
         self.stacks.pop_string()
     }
 
@@ -215,7 +215,7 @@ impl Ip {
     ///
     /// Any intervening empty space or areas delimited by semicolons will be
     /// skipped.
-    pub fn find_command(&mut self, space: &Space) {
+    pub(super) fn find_command(&mut self, space: &Space) {
         let mut skip = false;
 
         loop {
@@ -231,7 +231,7 @@ impl Ip {
     }
 
     /// Finds the next command in the `Ip`'s path, without moving it.
-    pub fn peek_command(&mut self, space: &Space) -> Value {
+    fn peek_command(&mut self, space: &Space) -> Value {
         let orig_position = self.position;
 
         self.step(space);
@@ -255,7 +255,7 @@ impl Ip {
     ///
     /// [`find_command`]: #method.find_command
     /// [`StackStack`]: ../../data/stack/struct.StackStack.html
-    pub fn skip_space(&mut self, space: &Space) {
+    fn skip_space(&mut self, space: &Space) {
         while self.get_current(space) == 32 {
             self.step(space);
         }

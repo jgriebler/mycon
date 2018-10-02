@@ -6,12 +6,12 @@ const CHUNK_SIZE: usize = 1 << CHUNK_SHIFT;
 const CHUNK_MASK: usize = (CHUNK_SIZE - 1) << CHUNK_SHIFT_BACK;
 
 #[derive(Clone)]
-pub(crate) struct Chunk {
+pub(super) struct Chunk {
     data: [[Value; CHUNK_SIZE]; CHUNK_SIZE],
 }
 
 #[derive(Clone)]
-pub(crate) struct Node<T> {
+pub(super) struct Node<T> {
     data: [[Option<Box<T>>; CHUNK_SIZE]; CHUNK_SIZE],
 }
 
@@ -22,9 +22,9 @@ type Tree4 = Node<Tree3>;
 type Tree5 = Node<Tree4>;
 type Tree6 = Node<Tree5>;
 
-pub(crate) type FungeTree = Node<Tree6>;
+pub(super) type FungeTree = Node<Tree6>;
 
-pub(crate) trait Tree: Default {
+pub(super) trait Tree: Default {
     fn get(&self, x: i32, y: i32) -> Value;
     fn set(&mut self, x: i32, y: i32, value: Value);
 

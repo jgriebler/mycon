@@ -11,41 +11,41 @@ const VERSION: &'static str = env!("CARGO_PKG_VERSION");
 impl Ip {
     // Control flow
 
-    pub(crate) fn go_east(&mut self) {
+    pub(super) fn go_east(&mut self) {
         self.set_delta(Delta { dx: 1, dy: 0 });
     }
 
-    pub(crate) fn go_south(&mut self) {
+    pub(super) fn go_south(&mut self) {
         self.set_delta(Delta { dx: 0, dy: 1 });
     }
 
-    pub(crate) fn go_west(&mut self) {
+    pub(super) fn go_west(&mut self) {
         self.set_delta(Delta { dx: -1, dy: 0 });
     }
 
-    pub(crate) fn go_north(&mut self) {
+    pub(super) fn go_north(&mut self) {
         self.set_delta(Delta { dx: 0, dy: -1 });
     }
 
-    pub(crate) fn trampoline(&mut self, ctx: &Context) {
+    pub(super) fn trampoline(&mut self, ctx: &Context) {
         if !ctx.space.is_last(self.position, self.delta) {
             self.step(&ctx.space);
         }
     }
 
-    pub(crate) fn reflect(&mut self) {
+    pub(super) fn reflect(&mut self) {
         self.delta = self.delta.reverse();
     }
 
-    pub(crate) fn turn_left(&mut self) {
+    pub(super) fn turn_left(&mut self) {
         self.delta = self.delta.rotate_left();
     }
 
-    pub(crate) fn turn_right(&mut self) {
+    pub(super) fn turn_right(&mut self) {
         self.delta = self.delta.rotate_right();
     }
 
-    pub(crate) fn randomize_delta(&mut self) {
+    pub(super) fn randomize_delta(&mut self) {
         let (dx, dy) = match rand::random::<u8>() % 4 {
             0 => ( 1,  0),
             1 => ( 0,  1),
@@ -57,14 +57,14 @@ impl Ip {
         self.set_delta(Delta { dx, dy });
     }
 
-    pub(crate) fn absolute_delta(&mut self) {
+    pub(super) fn absolute_delta(&mut self) {
         let dy = self.pop();
         let dx = self.pop();
 
         self.set_delta(Delta { dx, dy });
     }
 
-    pub(crate) fn jump(&mut self, ctx: &Context) {
+    pub(super) fn jump(&mut self, ctx: &Context) {
         let n = self.pop();
         let delta = self.delta;
 
@@ -74,17 +74,17 @@ impl Ip {
         self.delta = delta;
     }
 
-    pub(crate) fn stop(&mut self, ctx: &mut Context) {
+    pub(super) fn stop(&mut self, ctx: &mut Context) {
         ctx.control.delete_ip();
     }
 
-    pub(crate) fn terminate(&mut self, ctx: &mut Context) {
+    pub(super) fn terminate(&mut self, ctx: &mut Context) {
         ctx.control.terminate(self.pop());
     }
 
     // Logic
 
-    pub(crate) fn negate(&mut self) {
+    pub(super) fn negate(&mut self) {
         let v = self.pop();
 
         if v == 0 {
@@ -94,7 +94,7 @@ impl Ip {
         }
     }
 
-    pub(crate) fn greater_than(&mut self) {
+    pub(super) fn greater_than(&mut self) {
         let b = self.pop();
         let a = self.pop();
 
@@ -105,7 +105,7 @@ impl Ip {
         }
     }
 
-    pub(crate) fn if_east_west(&mut self) {
+    pub(super) fn if_east_west(&mut self) {
         let v = self.pop();
 
         if v == 0 {
@@ -115,7 +115,7 @@ impl Ip {
         }
     }
 
-    pub(crate) fn if_north_south(&mut self) {
+    pub(super) fn if_north_south(&mut self) {
         let v = self.pop();
 
         if v == 0 {
@@ -125,7 +125,7 @@ impl Ip {
         }
     }
 
-    pub(crate) fn compare(&mut self) {
+    pub(super) fn compare(&mut self) {
         let b = self.pop();
         let a = self.pop();
 
@@ -138,18 +138,18 @@ impl Ip {
 
     // Stack manipulation
 
-    pub(crate) fn discard(&mut self) {
+    pub(super) fn discard(&mut self) {
         self.pop();
     }
 
-    pub(crate) fn duplicate(&mut self) {
+    pub(super) fn duplicate(&mut self) {
         let v = self.pop();
 
         self.push(v);
         self.push(v);
     }
 
-    pub(crate) fn swap(&mut self) {
+    pub(super) fn swap(&mut self) {
         let v = self.pop();
         let w = self.pop();
 
@@ -157,20 +157,20 @@ impl Ip {
         self.push(w);
     }
 
-    pub(crate) fn clear(&mut self) {
+    pub(super) fn clear(&mut self) {
         self.stacks.clear();
     }
 
     // Stack stack manipulation
 
-    pub(crate) fn begin_block(&mut self) {
+    pub(super) fn begin_block(&mut self) {
         let n = self.pop();
 
         self.stacks.create_stack(n, self.storage);
         self.storage = self.position + self.delta;
     }
 
-    pub(crate) fn end_block(&mut self) {
+    pub(super) fn end_block(&mut self) {
         if self.stacks.single() {
             self.reflect();
             return;
@@ -182,7 +182,7 @@ impl Ip {
         self.storage = storage;
     }
 
-    pub(crate) fn dig(&mut self) {
+    pub(super) fn dig(&mut self) {
         if self.stacks.single() {
             self.reflect();
             return;
@@ -195,92 +195,92 @@ impl Ip {
 
     // Arithmetic
 
-    pub(crate) fn push_zero(&mut self) {
+    pub(super) fn push_zero(&mut self) {
         self.push(0);
     }
 
-    pub(crate) fn push_one(&mut self) {
+    pub(super) fn push_one(&mut self) {
         self.push(1);
     }
 
-    pub(crate) fn push_two(&mut self) {
+    pub(super) fn push_two(&mut self) {
         self.push(2);
     }
 
-    pub(crate) fn push_three(&mut self) {
+    pub(super) fn push_three(&mut self) {
         self.push(3);
     }
 
-    pub(crate) fn push_four(&mut self) {
+    pub(super) fn push_four(&mut self) {
         self.push(4);
     }
 
-    pub(crate) fn push_five(&mut self) {
+    pub(super) fn push_five(&mut self) {
         self.push(5);
     }
 
-    pub(crate) fn push_six(&mut self) {
+    pub(super) fn push_six(&mut self) {
         self.push(6);
     }
 
-    pub(crate) fn push_seven(&mut self) {
+    pub(super) fn push_seven(&mut self) {
         self.push(7);
     }
 
-    pub(crate) fn push_eight(&mut self) {
+    pub(super) fn push_eight(&mut self) {
         self.push(8);
     }
 
-    pub(crate) fn push_nine(&mut self) {
+    pub(super) fn push_nine(&mut self) {
         self.push(9);
     }
 
-    pub(crate) fn push_ten(&mut self) {
+    pub(super) fn push_ten(&mut self) {
         self.push(10);
     }
 
-    pub(crate) fn push_eleven(&mut self) {
+    pub(super) fn push_eleven(&mut self) {
         self.push(11);
     }
 
-    pub(crate) fn push_twelve(&mut self) {
+    pub(super) fn push_twelve(&mut self) {
         self.push(12);
     }
 
-    pub(crate) fn push_thirteen(&mut self) {
+    pub(super) fn push_thirteen(&mut self) {
         self.push(13);
     }
 
-    pub(crate) fn push_fourteen(&mut self) {
+    pub(super) fn push_fourteen(&mut self) {
         self.push(14);
     }
 
-    pub(crate) fn push_fifteen(&mut self) {
+    pub(super) fn push_fifteen(&mut self) {
         self.push(15);
     }
 
-    pub(crate) fn add(&mut self) {
+    pub(super) fn add(&mut self) {
         let b = self.pop();
         let a = self.pop();
 
         self.push(a + b);
     }
 
-    pub(crate) fn sub(&mut self) {
+    pub(super) fn sub(&mut self) {
         let b = self.pop();
         let a = self.pop();
 
         self.push(a - b);
     }
 
-    pub(crate) fn mul(&mut self) {
+    pub(super) fn mul(&mut self) {
         let b = self.pop();
         let a = self.pop();
 
         self.push(a * b);
     }
 
-    pub(crate) fn div(&mut self) {
+    pub(super) fn div(&mut self) {
         let b = self.pop();
         let a = self.pop();
 
@@ -291,7 +291,7 @@ impl Ip {
         }
     }
 
-    pub(crate) fn rem(&mut self) {
+    pub(super) fn rem(&mut self) {
         let b = self.pop();
         let a = self.pop();
 
@@ -304,11 +304,11 @@ impl Ip {
 
     // Strings
 
-    pub(crate) fn string_mode(&mut self) {
+    pub(super) fn string_mode(&mut self) {
         self.string = true;
     }
 
-    pub(crate) fn fetch_char(&mut self, ctx: &Context) {
+    pub(super) fn fetch_char(&mut self, ctx: &Context) {
         let v = if ctx.space.is_last(self.position, self.delta) {
             32
         } else {
@@ -319,7 +319,7 @@ impl Ip {
         self.step(&ctx.space);
     }
 
-    pub(crate) fn store_char(&mut self, ctx: &mut Context) {
+    pub(super) fn store_char(&mut self, ctx: &mut Context) {
         let v = self.pop();
 
         ctx.space.set(self.position + self.delta, v);
@@ -328,7 +328,7 @@ impl Ip {
 
     // Reflection
 
-    pub(crate) fn get(&mut self, ctx: &Context) {
+    pub(super) fn get(&mut self, ctx: &Context) {
         let dy = self.pop();
         let dx = self.pop();
 
@@ -336,7 +336,7 @@ impl Ip {
         self.push(v);
     }
 
-    pub(crate) fn put(&mut self, ctx: &mut Context) {
+    pub(super) fn put(&mut self, ctx: &mut Context) {
         let dy = self.pop();
         let dx = self.pop();
         let v = self.pop();
@@ -346,7 +346,7 @@ impl Ip {
 
     // Input/Output
 
-    pub(crate) fn output_decimal(&mut self, ctx: &mut Context) {
+    pub(super) fn output_decimal(&mut self, ctx: &mut Context) {
         let v = self.pop();
 
         if !ctx.env.write_decimal(v) {
@@ -354,7 +354,7 @@ impl Ip {
         }
     }
 
-    pub(crate) fn output_char(&mut self, ctx: &mut Context) {
+    pub(super) fn output_char(&mut self, ctx: &mut Context) {
         let v = self.pop();
 
         if let Some(c) = ::std::char::from_u32(v as u32) {
@@ -366,21 +366,21 @@ impl Ip {
         }
     }
 
-    pub(crate) fn input_decimal(&mut self, ctx: &mut Context) {
+    pub(super) fn input_decimal(&mut self, ctx: &mut Context) {
         match ctx.env.read_decimal() {
             Some(v) => self.push(v),
             None    => self.reflect(),
         }
     }
 
-    pub(crate) fn input_char(&mut self, ctx: &mut Context) {
+    pub(super) fn input_char(&mut self, ctx: &mut Context) {
         match ctx.env.read_char() {
             Some(v) => self.push(v as i32),
             None    => self.reflect(),
         }
     }
 
-    pub(crate) fn write_file(&mut self, ctx: &mut Context) {
+    pub(super) fn write_file(&mut self, ctx: &mut Context) {
         if let Some(path) = self.pop_string() {
             let v = self.pop();
             let y = self.pop();
@@ -457,7 +457,7 @@ impl Ip {
         }
     }
 
-    pub(crate) fn read_file(&mut self, ctx: &mut Context) {
+    pub(super) fn read_file(&mut self, ctx: &mut Context) {
         if let Some(path) = self.pop_string() {
             let v = self.pop();
             let y = self.pop();
@@ -501,7 +501,7 @@ impl Ip {
 
     // Concurrency
 
-    pub(crate) fn split(&mut self, ctx: &mut Context) {
+    pub(super) fn split(&mut self, ctx: &mut Context) {
         let mut ip = self.clone();
 
         ip.reflect();
@@ -513,7 +513,7 @@ impl Ip {
 
     // Fingerprints
 
-    pub(crate) fn load_semantics(&mut self) {
+    pub(super) fn load_semantics(&mut self) {
         let v = self.pop();
 
         if v <= 0 {
@@ -533,7 +533,7 @@ impl Ip {
         }
     }
 
-    pub(crate) fn unload_semantics(&mut self) {
+    pub(super) fn unload_semantics(&mut self) {
         let v = self.pop();
 
         if v <= 0 {
@@ -555,7 +555,7 @@ impl Ip {
 
     // Other
 
-    pub(crate) fn iterate(&mut self, ctx: &mut Context) {
+    pub(super) fn iterate(&mut self, ctx: &mut Context) {
         let n = self.pop();
 
         if n <= 0 {
@@ -579,7 +579,7 @@ impl Ip {
         }
     }
 
-    pub(crate) fn system_execute(&mut self, ctx: &mut Context) {
+    pub(super) fn system_execute(&mut self, ctx: &mut Context) {
         if let Some(cmd) = self.pop_string() {
             match ctx.env.execute(&cmd) {
                 Some(v) => self.push(v),
@@ -590,7 +590,7 @@ impl Ip {
         }
     }
 
-    pub(crate) fn get_sysinfo(&mut self, ctx: &mut Context) {
+    pub(super) fn get_sysinfo(&mut self, ctx: &mut Context) {
         let n = self.pop();
         let mut num_cells = 0;
 

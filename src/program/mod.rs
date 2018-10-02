@@ -54,32 +54,29 @@ impl<'env> Program<'env> {
 
     /// Sets the `Program`'s [`Environment`].
     ///
-    /// [`Environment`]: config/struct.Environment.html
+    /// [`Environment`]: struct.Environment.html
     pub fn env(mut self, env: Environment<'env>) -> Self {
         self.context.env = env;
         self
     }
 
-    /// Executes the current instruction of a single [`Ip`].
+    /// Executes the current instruction of a single instruction pointer.
     ///
-    /// The [`Ip`] will execute a single 'tick' as defined by the Funge-98
+    /// The IP will execute a single 'tick' as defined by the Funge-98
     /// specification and then advance its position up to the next command,
     /// skipping any intermediate spaces and areas delimited by semicolons and
     /// wrapping around to the other side of the program if it steps out of the
     /// program area.
-    ///
-    /// [`Ip`]: ip/struct.Ip.html
     pub fn step_single(&mut self) {
         self.ip_data.ips[self.ip_data.current].tick(&mut self.context);
         self.context.commit_changes(&mut self.ip_data);
     }
 
-    /// Executes the current instruction of every active [`Ip`].
+    /// Executes the current instruction of every active instruction pointer.
     ///
-    /// Similarly to [`step_single`], each [`Ip`] will be advanced to its next
+    /// Similarly to [`step_single`], each IP will be advanced to its next
     /// command.
     ///
-    /// [`Ip`]: ip/struct.Ip.html
     /// [`step_single`]: #method.step_single
     pub fn step_all(&mut self) {
         let now = self.ip_data.current;
@@ -96,10 +93,8 @@ impl<'env> Program<'env> {
     /// Runs the program to completion.
     ///
     /// Instructions will continuously be executed until the program encounters
-    /// an error, all [`Ip`]s stop by encountering an `@`-instruction or the
-    /// program is stopped with a `q`-instruction.
-    ///
-    /// [`Ip`]: ip/struct.Ip.html
+    /// an error, all instruction pointers stop by encountering an
+    /// `@`-instruction or the program is stopped with a `q`-instruction.
     pub fn run(&mut self) -> Value {
         loop {
             self.step_all();
@@ -119,7 +114,7 @@ impl<'env> Program<'env> {
 ///
 /// [`Ip`]: ip/struct.Ip.html
 /// [`Program`]: struct.Program.html
-pub struct Control(Vec<ExecResult>);
+struct Control(Vec<ExecResult>);
 
 impl Control {
     /// Adds an [`Ip`] to the list.
@@ -129,7 +124,7 @@ impl Control {
     ///
     /// [`Ip`]: ip/struct.Ip.html
     /// [`Program`]: struct.Program.html
-    pub fn add_ip(&mut self, ip: Ip) {
+    fn add_ip(&mut self, ip: Ip) {
         self.0.push(ExecResult::AddIp(ip));
     }
 
@@ -140,7 +135,7 @@ impl Control {
     ///
     /// [`Ip`]: ip/struct.Ip.html
     /// [`Program`]: struct.Program.html
-    pub fn delete_ip(&mut self) {
+    fn delete_ip(&mut self) {
         self.0.push(ExecResult::DeleteIp);
     }
 
@@ -151,7 +146,7 @@ impl Control {
     ///
     /// [`Value`]: ../data/type.Value.html
     /// [`Program`]: struct.Program.html
-    pub fn terminate(&mut self, v: Value) {
+    fn terminate(&mut self, v: Value) {
         self.0.push(ExecResult::Terminate(v));
     }
 }
@@ -160,7 +155,7 @@ impl Control {
 ///
 /// [`Program`]: struct.Program.html
 /// [`Ip`]: ip/struct.Ip.html
-pub struct Context<'env> {
+pub(crate) struct Context<'env> {
     control: Control,
     space: Space,
     env: Environment<'env>,
@@ -171,7 +166,7 @@ impl<'env> Context<'env> {
     ///
     /// This method needs to be called exactly once after an instruction has
     /// been executed.
-    pub fn commit_changes(&mut self, ip_data: &mut IpData) {
+    fn commit_changes(&mut self, ip_data: &mut IpData) {
         let mut offset = 1;
 
         for result in self.control.0.drain(..) {
@@ -206,7 +201,7 @@ impl<'env> Context<'env> {
 ///
 /// [`Program`]: struct.Program.html
 /// [`Ip`]: ip/struct.Ip.html
-pub struct IpData {
+struct IpData {
     ips: Vec<Ip>,
     current: usize,
     exit: Option<Value>,

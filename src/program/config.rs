@@ -151,21 +151,21 @@ impl<'env> Environment<'env> {
     /// Tries to write a number to the `Environment`'s output stream.
     ///
     /// Returns `true` if it succeeded, `false` otherwise.
-    pub fn write_decimal(&mut self, n: i32) -> bool {
+    pub(crate) fn write_decimal(&mut self, n: i32) -> bool {
         write!(self.output, "{} ", n).is_ok()
     }
 
     /// Tries to write a `char` to the `Environment`'s output stream.
     ///
     /// Returns `true` if it succeeded, `false` otherwise.
-    pub fn write_char(&mut self, c: char) -> bool {
+    pub(crate) fn write_char(&mut self, c: char) -> bool {
         write!(self.output, "{}", c).is_ok()
     }
 
     /// Tries to read a number from the `Environment`'s input stream.
     ///
     /// Returns `Some` read number if it succeeded, `None` otherwise.
-    pub fn read_decimal(&mut self) -> Option<i32> {
+    pub(crate) fn read_decimal(&mut self) -> Option<i32> {
         if self.output.flush().is_err() {
             return None;
         }
@@ -203,7 +203,7 @@ impl<'env> Environment<'env> {
     /// Tries to read a `char` from the `Environment`'s input stream.
     ///
     /// Returns `Some` read `char` if it succeeded, `None` otherwise.
-    pub fn read_char(&mut self) -> Option<char> {
+    pub(crate) fn read_char(&mut self) -> Option<char> {
         if self.output.flush().is_err() {
             return None;
         }
@@ -229,7 +229,7 @@ impl<'env> Environment<'env> {
     /// Tries to write the given string to a file.
     ///
     /// Returns `true` if it succeeded, `false` otherwise.
-    pub fn write_file(&self, path: &str, data: &str) -> bool {
+    pub(crate) fn write_file(&self, path: &str, data: &str) -> bool {
         match self.file_view {
             FileView::Real => (),
             FileView::Deny  => return false,
@@ -246,7 +246,7 @@ impl<'env> Environment<'env> {
     /// Tries to read from a file.
     ///
     /// Returns `Some` read string, or `None` if it failed.
-    pub fn read_file(&self, path: &str) -> Option<String> {
+    pub(crate) fn read_file(&self, path: &str) -> Option<String> {
         match self.file_view {
             FileView::Real => (),
             FileView::Deny  => return None,
@@ -280,7 +280,7 @@ impl<'env> Environment<'env> {
     /// `Environment`'s settings don't allow command execution.
     ///
     /// [`Value`]: ../../data/type.Value.html
-    pub fn execute(&self, cmd: &str) -> Option<Value> {
+    pub(crate) fn execute(&self, cmd: &str) -> Option<Value> {
         if self.exec_action != ExecAction::Deny {
             match Command::new("sh").args(&["-c", cmd]).status() {
                 Ok(st) => st.code(),
@@ -296,7 +296,7 @@ impl<'env> Environment<'env> {
     ///
     /// The flags are in the format returned by the `y`-instruction to a running
     /// Befunge-98 program.
-    pub fn flags(&self) -> Value {
+    pub(crate) fn flags(&self) -> Value {
         // 't' is always supported.
         // TODO Should this be configurable?
         let mut flags = 1;
@@ -315,7 +315,7 @@ impl<'env> Environment<'env> {
     }
 
     /// Returns a value indicating the behavior of the `=`-instruction.
-    pub fn operating_paradigm(&self) -> Value {
+    pub(crate) fn operating_paradigm(&self) -> Value {
         if self.exec_action != ExecAction::Deny {
             2
         } else {
@@ -324,12 +324,12 @@ impl<'env> Environment<'env> {
     }
 
     /// Returns an iterator over the command-line arguments of the program.
-    pub fn cmd_args(&self) -> impl Iterator<Item = String> {
+    pub(crate) fn cmd_args(&self) -> impl Iterator<Item = String> {
         env::args().rev()
     }
 
     /// Returns an iterator over the environment variables.
-    pub fn env_vars(&self) -> impl Iterator<Item = (String, String)> {
+    pub(crate) fn env_vars(&self) -> impl Iterator<Item = (String, String)> {
         env::vars()
     }
 }

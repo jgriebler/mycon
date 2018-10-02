@@ -17,14 +17,14 @@ use self::tree::*;
 /// represents a region containing only empty space (' ' characters), which is
 /// completely transparent from the point of view of the program.
 #[derive(Clone)]
-pub struct Space {
+pub(crate) struct Space {
     tree: FungeTree,
     bounds: Bounds,
 }
 
 impl Space {
     /// Creates a new empty `Space`.
-    pub fn new() -> Self {
+    pub(crate) fn new() -> Self {
         Space {
             tree: FungeTree::default(),
             bounds: Bounds::new(),
@@ -38,7 +38,7 @@ impl Space {
     ///
     /// [`Value`]: ../type.Value.html
     /// [`Point`]: ../struct.Point.html
-    pub fn get(&self, Point { x, y }: Point) -> Value {
+    pub(crate) fn get(&self, Point { x, y }: Point) -> Value {
         self.tree.get(x, y)
     }
 
@@ -50,7 +50,7 @@ impl Space {
     ///
     /// [`Value`]: ../type.Value.html
     /// [`Point`]: ../struct.Point.html
-    pub fn set(&mut self, Point { x, y }: Point, value: Value) {
+    pub(crate) fn set(&mut self, Point { x, y }: Point, value: Value) {
         self.tree.set(x, y, value);
         if value != SPACE {
             self.bounds.update(Point { x, y });
@@ -68,7 +68,7 @@ impl Space {
     ///
     /// [`Value`]: ../type.Value.html
     /// [`Point`]: ../struct.Point.html
-    pub fn min(&self) -> (i32, i32) {
+    pub(crate) fn min(&self) -> (i32, i32) {
         self.bounds.min()
     }
 
@@ -83,7 +83,7 @@ impl Space {
     ///
     /// [`Value`]: ../type.Value.html
     /// [`Point`]: ../struct.Point.html
-    pub fn max(&self) -> (i32, i32) {
+    pub(crate) fn max(&self) -> (i32, i32) {
         self.bounds.max()
     }
 
@@ -95,7 +95,7 @@ impl Space {
     ///
     /// [`Point`]: ../struct.Point.html
     /// [`Delta`]: ../struct.Delta.html
-    pub fn new_position(&self, Point { x, y }: Point, Delta { dx, dy }: Delta) -> Point {
+    pub(crate) fn new_position(&self, Point { x, y }: Point, Delta { dx, dy }: Delta) -> Point {
         use std::cmp::min;
 
         let (min_x, min_y) = self.bounds.min();
@@ -134,7 +134,7 @@ impl Space {
 
     /// Checks whether adding the [`Delta`] to the [`Point`] would be outside
     /// the bounding box.
-    pub fn is_last(&self, Point { x, y }: Point, Delta { dx, dy }: Delta) -> bool {
+    pub(crate) fn is_last(&self, Point { x, y }: Point, Delta { dx, dy }: Delta) -> bool {
         let (min_x, min_y) = self.bounds.min();
         let (max_x, max_y) = self.bounds.max();
 
