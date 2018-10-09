@@ -7,10 +7,11 @@
 extern crate chrono;
 extern crate rand;
 
+mod config;
 mod data;
 mod program;
 
+pub use config::Environment;
+pub use config::FileView;
+pub use config::ExecAction;
 pub use program::Program;
-pub use program::config::Environment;
-pub use program::config::FileView;
-pub use program::config::ExecAction;

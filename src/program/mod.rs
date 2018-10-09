@@ -1,11 +1,10 @@
 //! A representation of a running Befunge-98 program.
 
-pub mod config;
-pub mod ip;
+mod ip;
 
+use config::Environment;
 use data::Value;
 use data::space::Space;
-use self::config::Environment;
 use self::ip::Ip;
 
 /// An instance of a Befunge-98 program.
