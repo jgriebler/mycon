@@ -2,6 +2,11 @@
 name = "mycon"
 version = "0.1.0"
 authors = ["Johannes M. Griebler <johannes.griebler@gmail.com>"]
+description = "Befunge-98 interpreter"
+repository = "https://github.com/jgriebler/mycon"
+readme = "README.md"
+keywords = ["befunge", "funge-98", "interpreter", "esoteric"]
+license = "GPL-3.0-or-later"
 
 [dependencies]
 chrono = "0.4"
