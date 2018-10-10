@@ -2,4 +2,3 @@ tags
 
 /target/
 **/*.rs.bk
-Cargo.lock
