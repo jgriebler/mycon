@@ -110,7 +110,7 @@ impl<'env> Program<'env> {
     ///
     /// Instructions will continuously be executed until the program encounters
     /// an error, all instruction pointers stop by encountering an
-    /// `@`-instruction or the program is stopped with a `q`-instruction.
+    /// `@` instruction or the program is stopped with a `q` instruction.
     pub fn run(&mut self) -> Value {
         loop {
             self.step_all();

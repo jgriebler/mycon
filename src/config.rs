@@ -81,7 +81,7 @@ impl<'a> Write for Output<'a> {
 pub enum FileView {
     /// Gives complete access to the real filesystem.
     Real,
-    /// Denies any file access. The 'i' and 'o' instructions will fail and the
+    /// Denies any file access. The `i` and `o` instructions will fail and the
     /// interpreter will report that they are unsupported.
     Deny,
 }
@@ -93,7 +93,7 @@ pub enum ExecAction {
     /// Allows any commands issued by the program to be executed by the system
     /// shell.
     Real,
-    /// Denies the ability to execute commands. The '=' instruction will fail
+    /// Denies the ability to execute commands. The `=` instruction will fail
     /// and the interpreter will report that it is unsupported.
     Deny,
 }
@@ -311,7 +311,7 @@ impl<'env> Environment<'env> {
     /// Returns flags containing information about functionality available to
     /// the program.
     ///
-    /// The flags are in the format returned by the `y`-instruction to a running
+    /// The flags are in the format returned by the `y` instruction to a running
     /// Befunge-98 program.
     pub(crate) fn flags(&self) -> Value {
         // 't' is always supported.
@@ -331,7 +331,7 @@ impl<'env> Environment<'env> {
         flags
     }
 
-    /// Returns a value indicating the behavior of the `=`-instruction.
+    /// Returns a value indicating the behavior of the `=` instruction.
     pub(crate) fn operating_paradigm(&self) -> Value {
         if self.exec_action != ExecAction::Deny {
             2

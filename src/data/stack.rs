@@ -171,7 +171,7 @@ impl StackStack {
     /// new stack. Then, the given [`Point`] will be pushed onto the (now)
     /// second stack.
     ///
-    /// For details, consult the description of the '{'-instruction in the
+    /// For details, consult the description of the `{` instruction in the
     /// Funge-98 specification.
     ///
     /// [`Point`]: ../struct.Point.html
@@ -208,7 +208,7 @@ impl StackStack {
     /// deleted. `n` elements from the deleted stack will be transferred to the
     /// stack now on top.
     ///
-    /// For details, consult the description of the '}'-instruction in the
+    /// For details, consult the description of the `}` instruction in the
     /// Funge-98 specification.
     ///
     /// # Panics
