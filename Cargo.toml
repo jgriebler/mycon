@@ -9,5 +9,7 @@ keywords = ["befunge", "funge-98", "interpreter", "esoteric"]
 license = "GPL-3.0-or-later"
 
 [dependencies]
+ansi_term = "0.11"
+clap = "2.32"
 chrono = "0.4"
 rand = "0.5"

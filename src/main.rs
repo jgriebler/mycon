@@ -15,31 +15,63 @@
 // You should have received a copy of the GNU General Public License
 // along with mycon.  If not, see <https://www.gnu.org/licenses/>.
 
+extern crate ansi_term;
+#[macro_use]
+extern crate clap;
 extern crate mycon;
 
-use std::env;
 use std::fs::File;
 use std::io::Read;
 use std::process;
 
+use ansi_term::Colour;
+use clap::{App, Arg};
+
 use mycon::*;
 
-fn main() {
-    let exit = {
-        let path = env::args().nth(1).expect("missing file");
-        let mut code;
-
-        {
-            let mut file = File::open(path).expect("failed to open file");
-            code = String::new();
-
-            file.read_to_string(&mut code).expect("failed to read file");
-        }
-
-        let mut prog = Program::read(&code);
-
-        prog.run()
+macro_rules! print_error {
+    ($fmt:expr $(, $arg:expr)*) => {
+        eprintln!(concat!("{} ", $fmt), Colour::Red.bold().paint("error:"), $($arg),*);
     };
+}
+
+fn run() -> i32 {
+    let matches = App::new("mycon")
+        .version(crate_version!())
+        .author("Johannes M. Griebler <johannes.griebler@gmail.com>")
+        .about("Befunge-98 interpreter")
+        .arg(Arg::with_name("SOURCE_FILE")
+             .help("the source file to be interpreted")
+             .required(true))
+        .get_matches();
+
+    let path = matches.value_of("SOURCE_FILE").unwrap();
+
+    let mut code;
+
+    {
+        let mut file = match File::open(path) {
+            Ok(file) => file,
+            Err(e) => {
+                print_error!("The file \"{}\" could not be opened: {}", path, e);
+                return 1;
+            }
+        };
+
+        code = String::new();
+        if let Err(e) = file.read_to_string(&mut code) {
+            print_error!("The file \"{}\" could not be read: {}", path, e);
+            return 1;
+        }
+    }
+
+    let mut prog = Program::read(&code);
+
+    prog.run()
+}
+
+fn main() {
+    let exit = run();
 
     process::exit(exit);
 }
