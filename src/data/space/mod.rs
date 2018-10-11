@@ -19,6 +19,8 @@
 
 mod tree;
 
+use std::collections::BTreeMap;
+
 use super::{Value, Point, Delta, SPACE};
 use self::tree::*;
 
@@ -51,10 +53,31 @@ impl Space {
     /// Creates a new `Space` containing the given source code.
     pub(crate) fn read(code: &str) -> Self {
         let mut space = Space::new();
+        let mut longest = 0;
+        let mut n_lines = 0;
 
         for (y, l) in code.lines().enumerate() {
-            space.set_line(y as i32, l);
+            let n = space.set_line(y as i32, l);
+            n_lines += 1;
+
+            if n > longest {
+                longest = n;
+            }
         }
+
+        for x in 0..longest as i32 {
+            let mut n = 0;
+
+            for y in 0..n_lines as i32 {
+                if space.get(Point { x, y }) != SPACE {
+                    n += 1;
+                }
+            }
+
+            space.bounds.set_x(x, n);
+        }
+
+        space.bounds.set_min_max();
 
         space
     }
@@ -79,10 +102,8 @@ impl Space {
     /// [`Value`]: ../type.Value.html
     /// [`Point`]: ../struct.Point.html
     pub(crate) fn set(&mut self, Point { x, y }: Point, value: Value) {
-        self.tree.set(x, y, value);
-        if value != SPACE {
-            self.bounds.update(Point { x, y });
-        }
+        let old = self.tree.set(x, y, value);
+        self.bounds.update(Point { x, y }, old, value);
     }
 
     /// Returns the northwest corner `(x, y)` of the bounding box of the
@@ -181,11 +202,26 @@ impl Space {
         last_x || last_y
     }
 
-    fn set_line(&mut self, y: i32, line: &str) {
-        self.tree.set_line(y, &mut line.chars().map(|c| c as i32).filter(|&v| v != 12));
-        // This will set the bounds too large when the line contains a form feed
-        // or a trailing space. TODO Fix that.
-        self.bounds.update(Point { x: line.len() as i32 - 1, y });
+    fn set_line(&mut self, y: i32, line: &str) -> u32 {
+        let mut l = 0;
+
+        // scope necessary because of the borrow of l
+        {
+            let f = |c| {
+                let v = c as i32;
+                if v == 12 {
+                    None
+                } else {
+                    l += 1;
+                    Some(v)
+                }
+            };
+
+            let (_, n) = self.tree.set_line(y, &mut line.chars().filter_map(f));
+            self.bounds.set_y(y, n);
+        }
+
+        l
     }
 }
 
@@ -195,6 +231,8 @@ struct Bounds {
     min_y: i32,
     max_x: i32,
     max_y: i32,
+    nonempty_x: BTreeMap<i32, u32>,
+    nonempty_y: BTreeMap<i32, u32>,
 }
 
 impl Bounds {
@@ -204,21 +242,46 @@ impl Bounds {
             min_y: 0,
             max_x: 0,
             max_y: 0,
+            nonempty_x: BTreeMap::new(),
+            nonempty_y: BTreeMap::new(),
         }
     }
 
-    fn update(&mut self, Point { x, y }: Point) {
-        if x < self.min_x {
-            self.min_x = x;
-        } else if x > self.max_x {
-            self.max_x = x;
-        }
+    fn set_x(&mut self, x: i32, n: u32) {
+        *self.nonempty_x.entry(x).or_insert(0) += n;
+    }
 
-        if y < self.min_y {
-            self.min_y = y;
-        } else if y > self.max_y {
-            self.max_y = y;
+    fn set_y(&mut self, y: i32, n: u32) {
+        *self.nonempty_y.entry(y).or_insert(0) += n;
+    }
+
+    fn update(&mut self, Point { x, y }: Point, old: Value, new: Value) {
+        if old == SPACE && new != SPACE {
+            *self.nonempty_x.entry(x).or_insert(0) += 1;
+            *self.nonempty_y.entry(y).or_insert(0) += 1;
+
+            self.set_min_max();
+        } else if old != SPACE && new == SPACE {
+            self.nonempty_x.entry(x).and_modify(|r| *r -= 1);
+            self.nonempty_y.entry(y).and_modify(|r| *r -= 1);
+
+            self.set_min_max();
         }
+    }
+
+    fn set_min_max(&mut self) {
+        let f = |(i, n): (&i32, &u32)| {
+            if *n == 0 {
+                None
+            } else {
+                Some(*i)
+            }
+        };
+
+        self.min_x = self.nonempty_x.iter().filter_map(f).next().unwrap_or(0);
+        self.min_y = self.nonempty_y.iter().filter_map(f).next().unwrap_or(0);
+        self.max_x = self.nonempty_x.iter().filter_map(f).next_back().unwrap_or(0);
+        self.max_y = self.nonempty_y.iter().filter_map(f).next_back().unwrap_or(0);
     }
 
     fn min(&self) -> (i32, i32) {
@@ -302,8 +365,8 @@ mod tests {
 
         space.set(Point { x, y }, 12);
 
-        assert_eq!((0, y), space.min());
-        assert_eq!((x, 0), space.max());
+        assert_eq!((x, y), space.min());
+        assert_eq!((x, y), space.max());
     }
 
     #[test]
@@ -334,7 +397,7 @@ mod tests {
     }
 
     #[test]
-    fn space_from() {
+    fn space_read() {
         let code = "123\n456\n789";
         let space = Space::read(code);
 
@@ -343,5 +406,17 @@ mod tests {
         }
 
         assert_eq!((2, 2), space.max());
+    }
+
+    #[test]
+    fn space_read_bounds() {
+        let code = " a  b\nc d\n e";
+        let space = Space::read(code);
+
+        let nx: Vec<_> = space.bounds.nonempty_x.iter().collect();
+        let ny: Vec<_> = space.bounds.nonempty_y.iter().collect();
+
+        assert_eq!(&[(&0, &1), (&1, &2), (&2, &1), (&3, &0), (&4, &1)], &nx[..]);
+        assert_eq!(&[(&0, &2), (&1, &2), (&2, &1)], &ny[..]);
     }
 }

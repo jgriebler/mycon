@@ -43,12 +43,12 @@ pub(super) type FungeTree = Node<Tree6>;
 
 pub(super) trait Tree: Default {
     fn get(&self, x: i32, y: i32) -> Value;
-    fn set(&mut self, x: i32, y: i32, value: Value);
+    fn set(&mut self, x: i32, y: i32, value: Value) -> Value;
 
 //    fn get_chunk(&self, x: i32, y: i32) -> Chunk;
 //    fn set_chunk(&mut self, x: i32, y: i32, chunk: Chunk);
 
-    fn set_line<I>(&mut self, y: i32, values: &mut I) -> bool
+    fn set_line<I>(&mut self, y: i32, values: &mut I) -> (bool, u32)
         where I: Iterator<Item = Value>;
 }
 
@@ -65,10 +65,12 @@ impl Tree for Chunk {
         self.data[i][j]
     }
 
-    fn set(&mut self, x: i32, y: i32, value: Value) {
+    fn set(&mut self, x: i32, y: i32, value: Value) -> Value {
         let (i, j) = get_indices(x, y);
+        let old = self.data[i][j];
 
         self.data[i][j] = value;
+        old
     }
 
 //    fn get_chunk(&self, _: i32, _: i32) -> Chunk {
@@ -79,21 +81,26 @@ impl Tree for Chunk {
 //        *self = chunk
 //    }
 
-    fn set_line<I>(&mut self, y: i32, values: &mut I) -> bool
+    fn set_line<I>(&mut self, y: i32, values: &mut I) -> (bool, u32)
         where I: Iterator<Item = Value>
     {
         let (mut i, j) = get_indices(0, y);
+        let mut nonspace = 0;
 
         while let Some(value) = values.next() {
             self.data[i][j] = value;
             i += 1;
 
+            if value != SPACE {
+                nonspace += 1;
+            }
+
             if i == CHUNK_SIZE {
-                return false;
+                return (false, nonspace);
             }
         }
 
-        return true;
+        return (true, nonspace);
     }
 }
 
@@ -114,21 +121,22 @@ impl<T: Tree> Tree for Node<T> {
         }
     }
 
-    fn set(&mut self, x: i32, y: i32, value: Value) {
+    fn set(&mut self, x: i32, y: i32, value: Value) -> Value {
         let (i, j) = get_indices(x, y);
         let (x, y) = shift(x, y);
 
         let mut tree = match self.data[i][j].take() {
             Some(tree) => tree,
             None       => if value == SPACE {
-                return;
+                return SPACE;
             } else {
                 Box::new(T::default())
             },
         };
 
-        tree.set(x, y, value);
+        let old = tree.set(x, y, value);
         self.data[i][j] = Some(tree);
+        old
     }
 
 //    fn get_chunk(&self, x: i32, y: i32) -> Chunk {
@@ -154,11 +162,12 @@ impl<T: Tree> Tree for Node<T> {
 //        self.data[i][j] = Some(tree);
 //    }
 
-    fn set_line<I>(&mut self, y: i32, values: &mut I) -> bool
+    fn set_line<I>(&mut self, y: i32, values: &mut I) -> (bool, u32)
         where I: Iterator<Item = Value>
     {
         let (mut i, j) = get_indices(0, y);
         let (_, y) = shift(0, y);
+        let mut nonspace = 0;
 
         loop {
             let mut tree = match self.data[i][j].take() {
@@ -166,11 +175,12 @@ impl<T: Tree> Tree for Node<T> {
                 None       => Box::new(T::default()),
             };
 
-            let done = tree.set_line(y, values);
+            let (done, n) = tree.set_line(y, values);
             self.data[i][j] = Some(tree);
+            nonspace += n;
 
             if done {
-                return done;
+                return (done, nonspace);
             }
 
             if i == CHUNK_SIZE {
@@ -180,7 +190,7 @@ impl<T: Tree> Tree for Node<T> {
             i += 1;
         }
 
-        return false;
+        return (false, nonspace);
     }
 }
 
