@@ -4,6 +4,28 @@ An interpreter for the esoteric programming language [Befunge-98].
 
 [Befunge-98]: https://esolangs.org/wiki/Funge-98
 
+## Installation
+
+mycon can be installed with `cargo`:
+
+```
+$ cargo install mycon
+```
+
+This will install the executable `mycon` into `~/.cargo/bin`. Make sure that
+this directory is in your `$PATH`.
+
+## Usage
+
+To interpret a file `foo.b98`, use
+
+```
+$ mycon foo.b98
+```
+
+The `--help` flag gives information about available options. Currently, there
+isn't anything interesting there, but that will change in future versions.
+
 ## License
 
 Copyright 2018 Johannes M. Griebler
