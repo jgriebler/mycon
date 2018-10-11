@@ -334,7 +334,7 @@ impl<'env> Environment<'env> {
     /// Returns a value indicating the behavior of the `=` instruction.
     pub(crate) fn operating_paradigm(&self) -> Value {
         if self.exec_action != ExecAction::Deny {
-            2
+            1
         } else {
             0
         }
