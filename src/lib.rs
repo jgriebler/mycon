@@ -21,6 +21,7 @@
 
 #![warn(missing_docs)]
 
+extern crate ansi_term;
 extern crate chrono;
 extern crate rand;
 

@@ -23,6 +23,7 @@ extern crate mycon;
 use std::fs::File;
 use std::io::Read;
 use std::process;
+use std::time::Duration;
 
 use ansi_term::Colour;
 use clap::{App, Arg};
@@ -43,6 +44,16 @@ fn run() -> i32 {
         .arg(Arg::with_name("SOURCE_FILE")
              .help("the source file to be interpreted")
              .required(true))
+        .arg(Arg::with_name("TRACE")
+             .help("whether to trace command execution")
+             .short("t")
+             .long("trace"))
+        .arg(Arg::with_name("SLEEP")
+             .help("duration to sleep after each command, in milliseconds")
+             .short("s")
+             .long("sleep")
+             .takes_value(true)
+             .value_name("time"))
         .get_matches();
 
     let path = matches.value_of("SOURCE_FILE").unwrap();
@@ -65,7 +76,14 @@ fn run() -> i32 {
         }
     }
 
-    let mut prog = Program::read(&code);
+    let mut config = Config::new()
+        .trace(matches.is_present("TRACE"));
+
+    if let Some(n) = matches.value_of("SLEEP").and_then(|s| s.parse::<u64>().ok()) {
+        config = config.sleep(Duration::from_millis(n));
+    }
+
+    let mut prog = Program::read(&code).config(config);
 
     prog.run()
 }

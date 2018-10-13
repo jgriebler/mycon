@@ -86,6 +86,8 @@ impl<'env> Program<'env> {
     pub fn step_single(&mut self) {
         self.ip_data.ips[self.ip_data.current].tick(&mut self.context);
         self.context.commit_changes(&mut self.ip_data);
+
+        self.context.config.do_sleep();
     }
 
     /// Executes the current instruction of every active instruction pointer.

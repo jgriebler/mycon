@@ -22,8 +22,13 @@ use std::fs::File;
 use std::io;
 use std::io::{BufRead, BufReader, Read, Write};
 use std::process::Command;
+use std::thread;
 use std::time::Duration;
 
+use ansi_term::Colour;
+
+use data::stack::StackStack;
+use data::Point;
 use data::Value;
 
 enum Input<'a> {
@@ -127,6 +132,22 @@ impl<'env> Config<'env> {
         }
     }
 
+    /// Sets whether executed commands should be traced.
+    pub fn trace(self, trace: bool) -> Self {
+        Self {
+            trace,
+            ..self
+        }
+    }
+
+    /// Sets the duration to sleep after every instruction.
+    pub fn sleep(self, sleep: Duration) -> Self {
+        Self {
+            sleep,
+            ..self
+        }
+    }
+
     /// Sets the input stream of the `Config`.
     pub fn input(self, input: &'env mut impl BufRead) -> Self {
         Self {
@@ -161,6 +182,22 @@ impl<'env> Config<'env> {
             exec_action,
             ..self
         }
+    }
+
+    /// Prints the current state of one IP to stderr.
+    pub(crate) fn do_trace(&self, id: i32, cmd: char, pos: Point, stacks: &StackStack) {
+        if self.trace {
+            let mycon = Colour::Cyan.bold().paint("mycon:");
+            let id = Colour::Green.paint(id.to_string());
+            let cmd = Colour::Yellow.paint(cmd.to_string());
+            let pos = Colour::Blue.paint(pos.to_string());
+            eprintln!("{} IP {} hit command {} at {}; stacks: {}", mycon, id, cmd, pos, stacks);
+        }
+    }
+
+    /// Sleeps for the duration specified in its `sleep` field.
+    pub(crate) fn do_sleep(&self) {
+        thread::sleep(self.sleep);
     }
 
     /// Tries to write a number to the `Config`'s output stream.

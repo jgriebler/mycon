@@ -187,6 +187,8 @@ impl Ip {
             '~'         => self.input_char(ctx),
             _           => self.reflect(),
         }
+
+        ctx.config.do_trace(self.id, command, self.position, &self.stacks);
     }
 
     /// Sets the `Ip`'s [`Delta`] to a new value.

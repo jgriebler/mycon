@@ -19,6 +19,8 @@
 //!
 //! [`Ip`]: ../../program/ip/struct.Ip.html
 
+use std::fmt;
+
 use super::{Value, Point};
 
 type Stack = Vec<Value>;
@@ -270,6 +272,17 @@ impl StackStack {
                 self.second().push(v);
             }
         }
+    }
+}
+
+impl fmt::Display for StackStack {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{:?}", self.stacks[0])?;
+        for i in 1..self.stacks.len() {
+            write!(f, " {:?}", self.stacks[i])?;
+        }
+
+        Ok(())
     }
 }
 
