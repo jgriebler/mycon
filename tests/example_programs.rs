@@ -23,7 +23,7 @@ use util::test_output;
 
 macro_rules! from_file {
     ($file:expr) => {
-        include_str!(concat!("programs/", $file))
+        include_str!(concat!("../test_programs/", $file))
     };
 }
 
