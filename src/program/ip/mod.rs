@@ -19,6 +19,7 @@
 
 mod instruction;
 
+use config::Trace;
 use data::{Value, Point, Delta};
 use data::space::Space;
 use data::stack::StackStack;
@@ -188,7 +189,7 @@ impl Ip {
             _           => self.reflect(),
         }
 
-        ctx.config.do_trace(self.id, command, self.position, &self.stacks);
+        ctx.config.do_trace(Trace::new(self.id, command, self.position, &self.stacks));
     }
 
     /// Sets the `Ip`'s [`Delta`] to a new value.

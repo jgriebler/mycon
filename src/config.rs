@@ -21,11 +21,10 @@ use std::env;
 use std::fs::File;
 use std::io;
 use std::io::{BufRead, BufReader, Read, Write};
+use std::marker::PhantomData;
 use std::process::Command;
 use std::thread;
 use std::time::Duration;
-
-use ansi_term::Colour;
 
 use data::stack::StackStack;
 use data::Point;
@@ -110,6 +109,7 @@ pub enum ExecAction {
 /// its environment via instructions for I/O and shell command execution.
 pub struct Config<'env> {
     trace: bool,
+    fmt_trace: fn(Trace),
     sleep: Duration,
     input: Input<'env>,
     input_buffer: String,
@@ -123,6 +123,9 @@ impl<'env> Config<'env> {
     pub fn new() -> Self {
         Config {
             trace: false,
+            fmt_trace: |trace| {
+                eprintln!("{} at {}: {}, {}", trace.id, trace.position, trace.command, trace.stacks);
+            },
             sleep: Duration::new(0, 0),
             input: Input::Owned(Box::new(BufReader::new(io::stdin()))),
             input_buffer: String::new(),
@@ -136,6 +139,14 @@ impl<'env> Config<'env> {
     pub fn trace(self, trace: bool) -> Self {
         Self {
             trace,
+            ..self
+        }
+    }
+
+    /// Sets the function to format trace output.
+    pub fn trace_format(self, fmt_trace: fn(Trace)) -> Self {
+        Self {
+            fmt_trace,
             ..self
         }
     }
@@ -185,13 +196,9 @@ impl<'env> Config<'env> {
     }
 
     /// Prints the current state of one IP to stderr.
-    pub(crate) fn do_trace(&self, id: i32, cmd: char, pos: Point, stacks: &StackStack) {
+    pub(crate) fn do_trace(&self, trace: Trace) {
         if self.trace {
-            let mycon = Colour::Cyan.bold().paint("mycon:");
-            let id = Colour::Green.paint(id.to_string());
-            let cmd = Colour::Yellow.paint(cmd.to_string());
-            let pos = Colour::Blue.paint(pos.to_string());
-            eprintln!("{} IP {} hit command {} at {}; stacks: {}", mycon, id, cmd, pos, stacks);
+            (self.fmt_trace)(trace);
         }
     }
 
@@ -383,5 +390,33 @@ impl<'env> Config<'env> {
     /// Returns an iterator over the environment variables.
     pub(crate) fn env_vars(&self) -> impl Iterator<Item = (String, String)> {
         env::vars()
+    }
+}
+
+/// Values available to trace output.
+pub struct Trace {
+    /// The ID of the IP that executed a command.
+    pub id: String,
+    /// The command that was executed.
+    pub command: String,
+    /// The position at which the command was encountered.
+    pub position: String,
+    /// The stacks of the IP after the command was executed.
+    pub stacks: String,
+
+    // Make sure this struct can't be constructed in other crates
+    _phantom: PhantomData<()>,
+}
+
+impl Trace {
+    pub(crate) fn new(id: i32, cmd: char, position: Point, stacks: &StackStack) -> Self {
+        Self {
+            id: id.to_string(),
+            command: cmd.to_string(),
+            position: position.to_string(),
+            stacks: stacks.to_string(),
+
+            _phantom: PhantomData,
+        }
     }
 }

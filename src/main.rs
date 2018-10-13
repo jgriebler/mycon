@@ -76,8 +76,20 @@ fn run() -> i32 {
         }
     }
 
-    let mut config = Config::new()
-        .trace(matches.is_present("TRACE"));
+    let mut config = Config::new();
+
+    if matches.is_present("TRACE") {
+        config = config
+            .trace(true)
+            .trace_format(|trace| {
+                let mycon = Colour::Cyan.paint("mycon:");
+                let id = Colour::Green.paint(trace.id);
+                let cmd = Colour::Purple.paint(trace.command);
+                let pos = Colour::Blue.paint(trace.position);
+                let stacks = Colour::Yellow.paint(trace.stacks);
+                eprintln!("{} IP {} hit {} at {}; stacks: {}", mycon, id, cmd, pos, stacks);
+            });
+    }
 
     if let Some(n) = matches.value_of("SLEEP").and_then(|s| s.parse::<u64>().ok()) {
         config = config.sleep(Duration::from_millis(n));

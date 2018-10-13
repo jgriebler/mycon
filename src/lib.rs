@@ -21,7 +21,6 @@
 
 #![warn(missing_docs)]
 
-extern crate ansi_term;
 extern crate chrono;
 extern crate rand;
 
@@ -32,4 +31,5 @@ mod program;
 pub use config::Config;
 pub use config::FileView;
 pub use config::ExecAction;
+pub use config::Trace;
 pub use program::Program;
