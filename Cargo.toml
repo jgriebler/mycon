@@ -13,3 +13,10 @@ ansi_term = "0.11"
 clap = "2.32"
 chrono = "0.4"
 rand = "0.5"
+
+[dev-dependencies]
+criterion = "0.2"
+
+[[bench]]
+name = "example_programs"
+harness = false
