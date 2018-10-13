@@ -21,16 +21,29 @@ mod util;
 
 use util::test_output;
 
+macro_rules! from_file {
+    ($file:expr) => {
+        include_str!(concat!("programs/", $file))
+    };
+}
+
 #[test]
 fn hello() {
-    let code = r#"a"!dlroW olleH">:#,_@"#;
+    let code = from_file!("hello.b98");
 
     test_output(code, "Hello World!\n");
 }
 
 #[test]
 fn quine() {
-    let code = ":0g,:f4+-!;@,a;# _1+\n";
+    let code = from_file!("quine.b98");
 
     test_output(code, code);
+}
+
+#[test]
+fn fibo() {
+    let code = from_file!("fibo.b98");
+
+    test_output(code, "6765 ");
 }
