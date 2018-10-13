@@ -19,7 +19,7 @@
 
 mod ip;
 
-use config::Environment;
+use config::Config;
 use data::Value;
 use data::space::Space;
 use self::ip::Ip;
@@ -35,13 +35,13 @@ pub struct Program<'env> {
 }
 
 impl<'env> Program<'env> {
-    fn init(space: Space, env: Environment<'env>) -> Self {
+    fn init(space: Space, config: Config<'env>) -> Self {
         let mut ip = Ip::new();
         ip.find_command(&space);
 
         let context = Context {
             space,
-            env,
+            config,
             control: Control(Vec::new()),
         };
 
@@ -60,19 +60,19 @@ impl<'env> Program<'env> {
 
     /// Creates a new empty `Program`.
     pub fn new() -> Self {
-        Program::init(Space::new(), Environment::new())
+        Program::init(Space::new(), Config::new())
     }
 
     /// Initializes a `Program` with the given source code.
     pub fn read(code: &str) -> Self {
-        Program::init(Space::read(code), Environment::new())
+        Program::init(Space::read(code), Config::new())
     }
 
-    /// Sets the `Program`'s [`Environment`].
+    /// Sets the `Program`'s [`Config`].
     ///
-    /// [`Environment`]: struct.Environment.html
-    pub fn env(mut self, env: Environment<'env>) -> Self {
-        self.context.env = env;
+    /// [`Config`]: struct.Config.html
+    pub fn config(mut self, config: Config<'env>) -> Self {
+        self.context.config = config;
         self
     }
 
@@ -174,7 +174,7 @@ impl Control {
 pub(crate) struct Context<'env> {
     control: Control,
     space: Space,
-    env: Environment<'env>,
+    config: Config<'env>,
 }
 
 impl<'env> Context<'env> {

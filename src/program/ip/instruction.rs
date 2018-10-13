@@ -366,7 +366,7 @@ impl Ip {
     pub(super) fn output_decimal(&mut self, ctx: &mut Context) {
         let v = self.pop();
 
-        if !ctx.env.write_decimal(v) {
+        if !ctx.config.write_decimal(v) {
             self.reflect();
         }
     }
@@ -375,7 +375,7 @@ impl Ip {
         let v = self.pop();
 
         if let Some(c) = ::std::char::from_u32(v as u32) {
-            if !ctx.env.write_char(c) {
+            if !ctx.config.write_char(c) {
                 self.reflect();
             }
         } else {
@@ -384,14 +384,14 @@ impl Ip {
     }
 
     pub(super) fn input_decimal(&mut self, ctx: &mut Context) {
-        match ctx.env.read_decimal() {
+        match ctx.config.read_decimal() {
             Some(v) => self.push(v),
             None    => self.reflect(),
         }
     }
 
     pub(super) fn input_char(&mut self, ctx: &mut Context) {
-        match ctx.env.read_char() {
+        match ctx.config.read_char() {
             Some(v) => self.push(v as i32),
             None    => self.reflect(),
         }
@@ -466,7 +466,7 @@ impl Ip {
 
             s.push('\n');
 
-            if !ctx.env.write_file(&path, &s) {
+            if !ctx.config.write_file(&path, &s) {
                 self.reflect();
             }
         } else {
@@ -487,7 +487,7 @@ impl Ip {
 
             let mut w = 0;
 
-            if let Some(s) = ctx.env.read_file(&path) {
+            if let Some(s) = ctx.config.read_file(&path) {
                 for c in s.chars() {
                     if c == '\n' && !linear {
                         i = x;
@@ -598,7 +598,7 @@ impl Ip {
 
     pub(super) fn system_execute(&mut self, ctx: &mut Context) {
         if let Some(cmd) = self.pop_string() {
-            match ctx.env.execute(&cmd) {
+            match ctx.config.execute(&cmd) {
                 Some(v) => self.push(v),
                 None    => self.reflect(),
             }
@@ -612,7 +612,7 @@ impl Ip {
         let mut num_cells = 0;
 
         let space = &ctx.space;
-        let io = &ctx.env;
+        let io = &ctx.config;
 
         let sizes = self.stacks.stack_sizes();
 

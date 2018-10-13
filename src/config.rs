@@ -22,6 +22,7 @@ use std::fs::File;
 use std::io;
 use std::io::{BufRead, BufReader, Read, Write};
 use std::process::Command;
+use std::time::Duration;
 
 use data::Value;
 
@@ -98,15 +99,13 @@ pub enum ExecAction {
     Deny,
 }
 
-/// Tracks information on how the program interacts with its environment.
+/// A container for program configuration.
 ///
-/// An `Environment` keeps track of where input should be read, where output
-/// should be written, what files the program may access and how to locate them,
-/// and how to react when it tries to execute a shell command.
-///
-/// This API will soon be overhauled to provide a cleaner and more expressive
-/// interface.
-pub struct Environment<'env> {
+/// This includes settings for debug output and how the program interacts with
+/// its environment via instructions for I/O and shell command execution.
+pub struct Config<'env> {
+    trace: bool,
+    sleep: Duration,
     input: Input<'env>,
     input_buffer: String,
     output: Output<'env>,
@@ -114,13 +113,12 @@ pub struct Environment<'env> {
     exec_action: ExecAction,
 }
 
-impl<'env> Environment<'env> {
-    /// Creates a new `Environment` referencing the standard input and output.
-    ///
-    /// The `Environment` will give the program full access to the file system
-    /// and allow it to execute shell commands.
+impl<'env> Config<'env> {
+    /// Creates a new `Config` with default settings.
     pub fn new() -> Self {
-        Environment {
+        Config {
+            trace: false,
+            sleep: Duration::new(0, 0),
             input: Input::Owned(Box::new(BufReader::new(io::stdin()))),
             input_buffer: String::new(),
             output: Output::Owned(Box::new(io::stdout())),
@@ -129,7 +127,7 @@ impl<'env> Environment<'env> {
         }
     }
 
-    /// Sets the input stream of the `Environment`.
+    /// Sets the input stream of the `Config`.
     pub fn input(self, input: &'env mut impl BufRead) -> Self {
         Self {
             input: Input::Borrowed(input),
@@ -137,7 +135,7 @@ impl<'env> Environment<'env> {
         }
     }
 
-    /// Sets the output stream of the `Environment`.
+    /// Sets the output stream of the `Config`.
     pub fn output(self, output: &'env mut impl Write) -> Self {
         Self {
             output: Output::Borrowed(output),
@@ -145,7 +143,7 @@ impl<'env> Environment<'env> {
         }
     }
 
-    /// Sets the [`FileView`] of the `Environment`.
+    /// Sets the [`FileView`] of the `Config`.
     ///
     /// [`FileView`]: enum.FileView.html
     pub fn file_view(self, file_view: FileView) -> Self {
@@ -155,7 +153,7 @@ impl<'env> Environment<'env> {
         }
     }
 
-    /// Sets the [`ExecAction`] of the `Environment`.
+    /// Sets the [`ExecAction`] of the `Config`.
     ///
     /// [`ExecAction`]: enum.ExecAction.html
     pub fn exec_action(self, exec_action: ExecAction) -> Self {
@@ -165,21 +163,21 @@ impl<'env> Environment<'env> {
         }
     }
 
-    /// Tries to write a number to the `Environment`'s output stream.
+    /// Tries to write a number to the `Config`'s output stream.
     ///
     /// Returns `true` if it succeeded, `false` otherwise.
     pub(crate) fn write_decimal(&mut self, n: i32) -> bool {
         write!(self.output, "{} ", n).is_ok()
     }
 
-    /// Tries to write a `char` to the `Environment`'s output stream.
+    /// Tries to write a `char` to the `Config`'s output stream.
     ///
     /// Returns `true` if it succeeded, `false` otherwise.
     pub(crate) fn write_char(&mut self, c: char) -> bool {
         write!(self.output, "{}", c).is_ok()
     }
 
-    /// Tries to read a number from the `Environment`'s input stream.
+    /// Tries to read a number from the `Config`'s input stream.
     ///
     /// Returns `Some` read number if it succeeded, `None` otherwise.
     pub(crate) fn read_decimal(&mut self) -> Option<i32> {
@@ -217,7 +215,7 @@ impl<'env> Environment<'env> {
         Some(ret)
     }
 
-    /// Tries to read a `char` from the `Environment`'s input stream.
+    /// Tries to read a `char` from the `Config`'s input stream.
     ///
     /// Returns `Some` read `char` if it succeeded, `None` otherwise.
     pub(crate) fn read_char(&mut self) -> Option<char> {
@@ -294,7 +292,7 @@ impl<'env> Environment<'env> {
     ///
     /// Also, a return of `None` can mean that the attempt to execute `sh`
     /// failed, that `sh` was terminated by a signal or that this
-    /// `Environment`'s settings don't allow command execution.
+    /// `Config`'s settings don't allow command execution.
     ///
     /// [`Value`]: ../../data/type.Value.html
     pub(crate) fn execute(&self, cmd: &str) -> Option<Value> {

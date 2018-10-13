@@ -17,15 +17,15 @@
 
 use std::io;
 
-use mycon::{Environment, Program};
+use mycon::{Config, Program};
 
 pub fn test_output(code: &str, output: &str) {
     let mut empty = io::empty();
     let mut buffer = Vec::new();
 
     {
-        let env = Environment::new().input(&mut empty).output(&mut buffer);
-        let mut prog = Program::read(code).env(env);
+        let config = Config::new().input(&mut empty).output(&mut buffer);
+        let mut prog = Program::read(code).config(config);
 
         prog.run();
     }

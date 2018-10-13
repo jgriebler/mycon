@@ -28,7 +28,7 @@ mod config;
 mod data;
 mod program;
 
-pub use config::Environment;
+pub use config::Config;
 pub use config::FileView;
 pub use config::ExecAction;
 pub use program::Program;
