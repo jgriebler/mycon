@@ -169,7 +169,7 @@ impl<T: Tree> Tree for Node<T> {
         let (_, y) = shift(0, y);
         let mut nonspace = 0;
 
-        loop {
+        while i != CHUNK_SIZE {
             let mut tree = match self.data[i][j].take() {
                 Some(tree) => tree,
                 None       => Box::new(T::default()),
@@ -181,10 +181,6 @@ impl<T: Tree> Tree for Node<T> {
 
             if done {
                 return (done, nonspace);
-            }
-
-            if i == CHUNK_SIZE {
-                break;
             }
 
             i += 1;
