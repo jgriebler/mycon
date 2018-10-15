@@ -21,9 +21,9 @@ extern crate clap;
 extern crate mycon;
 
 use std::fs::File;
-use std::io::Read;
+use std::io::{self, Read, Write};
 use std::process;
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 use ansi_term::Colour;
 use clap::{App, Arg};
@@ -44,6 +44,10 @@ fn run() -> i32 {
         .arg(Arg::with_name("SOURCE_FILE")
              .help("the source file to be interpreted")
              .required(true))
+        .arg(Arg::with_name("TIME")
+             .help("report the wall-clock execution time")
+             .short("p")
+             .long("time"))
         .arg(Arg::with_name("TRACE")
              .help("whether to trace command execution")
              .short("t")
@@ -95,9 +99,25 @@ fn run() -> i32 {
         config = config.sleep(Duration::from_millis(n));
     }
 
-    let mut prog = Program::read(&code).config(config);
+    let start = if matches.is_present("TIME") {
+        Some(Instant::now())
+    } else {
+        None
+    };
 
-    prog.run()
+    let exit = {
+        let mut prog = Program::read(&code).config(config);
+
+        prog.run()
+    };
+
+    start.map(|t| {
+        let elapsed = t.elapsed();
+        let _ = io::stdout().flush();
+        eprintln!("{} executed in {:?}", Colour::Cyan.paint("mycon:"), elapsed);
+    });
+
+    exit
 }
 
 fn main() {
