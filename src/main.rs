@@ -49,7 +49,7 @@ fn run() -> i32 {
              .short("p")
              .long("time"))
         .arg(Arg::with_name("TRACE")
-             .help("whether to trace command execution")
+             .help("trace command execution")
              .short("t")
              .long("trace"))
         .arg(Arg::with_name("SLEEP")
