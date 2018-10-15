@@ -36,6 +36,12 @@ macro_rules! print_error {
     };
 }
 
+macro_rules! print_info {
+    ($fmt:expr $(, $arg:expr)*) => {
+        eprintln!(concat!("{} ", $fmt), Colour::Cyan.paint("mycon:"), $($arg),*);
+    };
+}
+
 fn run() -> i32 {
     let matches = App::new("mycon")
         .version(crate_version!())
@@ -86,12 +92,11 @@ fn run() -> i32 {
         config = config
             .trace(true)
             .trace_format(|trace| {
-                let mycon = Colour::Cyan.paint("mycon:");
                 let id = Colour::Green.paint(trace.id());
                 let cmd = Colour::Purple.paint(trace.command());
                 let pos = Colour::Blue.paint(trace.position());
                 let stacks = Colour::Yellow.paint(trace.stacks());
-                eprintln!("{} IP {} hit {} at {}; stacks: {}", mycon, id, cmd, pos, stacks);
+                print_info!("IP {} hit {} at {}; stacks: {}", id, cmd, pos, stacks);
             });
     }
 
@@ -114,7 +119,7 @@ fn run() -> i32 {
     start.map(|t| {
         let elapsed = t.elapsed();
         let _ = io::stdout().flush();
-        eprintln!("{} executed in {:?}", Colour::Cyan.paint("mycon:"), elapsed);
+        print_info!("executed in {:?}", elapsed);
     });
 
     exit
