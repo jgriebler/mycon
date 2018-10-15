@@ -21,7 +21,6 @@ use std::env;
 use std::fs::File;
 use std::io;
 use std::io::{BufRead, BufReader, Read, Write};
-use std::marker::PhantomData;
 use std::process::Command;
 use std::thread;
 use std::time::Duration;
@@ -394,29 +393,40 @@ impl<'env> Config<'env> {
 }
 
 /// Values available to trace output.
-pub struct Trace {
-    /// The ID of the IP that executed a command.
-    pub id: String,
-    /// The command that was executed.
-    pub command: String,
-    /// The position at which the command was encountered.
-    pub position: String,
-    /// The stacks of the IP after the command was executed.
-    pub stacks: String,
-
-    // Make sure this struct can't be constructed in other crates
-    _phantom: PhantomData<()>,
+pub struct Trace<'a> {
+    id: Value,
+    command: char,
+    position: Point,
+    stacks: &'a StackStack,
 }
 
-impl Trace {
-    pub(crate) fn new(id: i32, cmd: char, position: Point, stacks: &StackStack) -> Self {
+impl<'a> Trace<'a> {
+    pub(crate) fn new(id: i32, command: char, position: Point, stacks: &'a StackStack) -> Self {
         Self {
-            id: id.to_string(),
-            command: cmd.to_string(),
-            position: position.to_string(),
-            stacks: stacks.to_string(),
-
-            _phantom: PhantomData,
+            id,
+            command,
+            position,
+            stacks,
         }
+    }
+
+    /// Returns the ID of the IP that executed a command.
+    pub fn id(&self) -> String {
+        self.id.to_string()
+    }
+
+    /// Returns the command that was executed.
+    pub fn command(&self) -> String {
+        self.command.to_string()
+    }
+
+    /// Returns the position at which the command was encountered.
+    pub fn position(&self) -> String {
+        self.position.to_string()
+    }
+
+    /// Returns the stacks of the IP after the command was executed.
+    pub fn stacks(&self) -> String {
+        self.stacks.to_string()
     }
 }
