@@ -30,8 +30,8 @@ use data::Point;
 use data::Value;
 
 enum Input<'a> {
-    Owned(Box<BufRead>),
-    Borrowed(&'a mut BufRead),
+    Owned(Box<dyn BufRead>),
+    Borrowed(&'a mut dyn BufRead),
 }
 
 impl<'a> Read for Input<'a> {
@@ -60,8 +60,8 @@ impl<'a> BufRead for Input<'a> {
 }
 
 enum Output<'a> {
-    Owned(Box<Write>),
-    Borrowed(&'a mut Write),
+    Owned(Box<dyn Write>),
+    Borrowed(&'a mut dyn Write),
 }
 
 impl<'a> Write for Output<'a> {
