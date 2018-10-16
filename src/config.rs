@@ -108,7 +108,7 @@ pub enum ExecAction {
 /// its environment via instructions for I/O and shell command execution.
 pub struct Config<'env> {
     trace: bool,
-    fmt_trace: fn(Trace),
+    fmt_trace: Box<dyn FnMut(Trace)>,
     sleep: Duration,
     input: Input<'env>,
     input_buffer: String,
@@ -122,9 +122,9 @@ impl<'env> Config<'env> {
     pub fn new() -> Self {
         Config {
             trace: false,
-            fmt_trace: |trace| {
+            fmt_trace: Box::new(|trace| {
                 eprintln!("{} at {}: {}, {}", trace.id, trace.position, trace.command, trace.stacks);
-            },
+            }),
             sleep: Duration::new(0, 0),
             input: Input::Owned(Box::new(BufReader::new(io::stdin()))),
             input_buffer: String::new(),
@@ -143,9 +143,9 @@ impl<'env> Config<'env> {
     }
 
     /// Sets the function to format trace output.
-    pub fn trace_format(self, fmt_trace: fn(Trace)) -> Self {
+    pub fn trace_format(self, fmt_trace: impl FnMut(Trace) + 'static) -> Self {
         Self {
-            fmt_trace,
+            fmt_trace: Box::new(fmt_trace),
             ..self
         }
     }
@@ -195,7 +195,7 @@ impl<'env> Config<'env> {
     }
 
     /// Prints the current state of one IP to stderr.
-    pub(crate) fn do_trace(&self, trace: Trace) {
+    pub(crate) fn do_trace(&mut self, trace: Trace) {
         if self.trace {
             (self.fmt_trace)(trace);
         }
