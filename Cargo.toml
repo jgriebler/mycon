@@ -1,6 +1,6 @@
 [package]
 name = "mycon"
-version = "0.1.0"
+version = "0.2.0"
 authors = ["Johannes M. Griebler <johannes.griebler@gmail.com>"]
 description = "Befunge-98 interpreter"
 repository = "https://github.com/jgriebler/mycon"
