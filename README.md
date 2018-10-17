@@ -23,8 +23,7 @@ To interpret a file `foo.b98`, use
 $ mycon foo.b98
 ```
 
-The `--help` flag gives information about available options. Currently, there
-isn't anything interesting there, but that will change in future versions.
+The `--help` flag gives information about available options.
 
 ## License
 
