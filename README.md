@@ -25,6 +25,9 @@ $ mycon foo.b98
 
 The `--help` flag gives information about available options.
 
+mycon will first try to read the file as UTF-8. If this fails, it will assume it
+is in ISO-8859-1 (Latin-1) and treat each byte as one character.
+
 ## License
 
 Copyright 2018 Johannes M. Griebler

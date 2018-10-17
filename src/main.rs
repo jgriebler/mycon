@@ -68,9 +68,7 @@ fn run() -> i32 {
 
     let path = matches.value_of("SOURCE_FILE").unwrap();
 
-    let mut code;
-
-    {
+    let code = {
         let mut file = match File::open(path) {
             Ok(file) => file,
             Err(e) => {
@@ -79,12 +77,16 @@ fn run() -> i32 {
             }
         };
 
-        code = String::new();
-        if let Err(e) = file.read_to_string(&mut code) {
+        let mut buf = Vec::new();
+        if let Err(e) = file.read_to_end(&mut buf) {
             print_error!("The file \"{}\" could not be read: {}", path, e);
             return 1;
         }
-    }
+
+        String::from_utf8(buf).unwrap_or_else(|e| {
+            e.into_bytes().into_iter().map(char::from).collect()
+        })
+    };
 
     let mut config = Config::new();
 
