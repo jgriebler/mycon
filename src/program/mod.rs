@@ -19,9 +19,9 @@
 
 mod ip;
 
-use config::Config;
-use data::Value;
-use data::space::Space;
+use crate::config::Config;
+use crate::data::Value;
+use crate::data::space::Space;
 use self::ip::Ip;
 
 /// An instance of a Befunge-98 program.

@@ -19,10 +19,10 @@
 
 mod instruction;
 
-use config::Trace;
-use data::{Value, Point, Delta};
-use data::space::Space;
-use data::stack::StackStack;
+use crate::config::Trace;
+use crate::data::{Value, Point, Delta};
+use crate::data::space::Space;
+use crate::data::stack::StackStack;
 use super::Context;
 
 /// An instruction pointer in a running program.

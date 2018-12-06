@@ -28,8 +28,8 @@ mod config;
 mod data;
 mod program;
 
-pub use config::Config;
-pub use config::FileView;
-pub use config::ExecAction;
-pub use config::Trace;
-pub use program::Program;
+pub use crate::config::Config;
+pub use crate::config::FileView;
+pub use crate::config::ExecAction;
+pub use crate::config::Trace;
+pub use crate::program::Program;

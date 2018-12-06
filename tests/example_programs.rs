@@ -19,7 +19,7 @@ extern crate mycon;
 
 mod util;
 
-use util::test_output;
+use self::util::test_output;
 
 macro_rules! from_file {
     ($file:expr) => {

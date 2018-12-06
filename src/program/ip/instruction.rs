@@ -18,8 +18,8 @@
 use chrono::{Utc, Datelike, Timelike};
 use rand;
 
-use data::{Value, Point, Delta};
-use program::Context;
+use crate::data::{Value, Point, Delta};
+use crate::program::Context;
 use super::Ip;
 
 const HANDPRINT: i32 = 0x4a474d59;

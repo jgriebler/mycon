@@ -23,7 +23,7 @@ mod util;
 
 use criterion::Criterion;
 
-use util::run;
+use self::util::run;
 
 macro_rules! from_file {
     ($file:expr) => {

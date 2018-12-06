@@ -15,7 +15,7 @@
 // You should have received a copy of the GNU General Public License
 // along with mycon.  If not, see <https://www.gnu.org/licenses/>.
 
-use data::{Value, SPACE};
+use crate::data::{Value, SPACE};
 
 const CHUNK_SHIFT: usize = 4;
 const CHUNK_SHIFT_BACK: usize = 32 - CHUNK_SHIFT;

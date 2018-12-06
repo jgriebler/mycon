@@ -25,9 +25,9 @@ use std::process::Command;
 use std::thread;
 use std::time::Duration;
 
-use data::stack::StackStack;
-use data::Point;
-use data::Value;
+use crate::data::stack::StackStack;
+use crate::data::Point;
+use crate::data::Value;
 
 enum Input<'a> {
     Owned(Box<dyn BufRead>),
