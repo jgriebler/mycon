@@ -54,7 +54,7 @@ pub(crate) struct Delta {
 
 impl Delta {
     /// Returns the negative to the given `Delta`.
-    pub(crate) fn reverse(&self) -> Self {
+    pub(crate) fn reverse(self) -> Self {
         Delta {
             dx: -self.dx,
             dy: -self.dy,
@@ -62,7 +62,7 @@ impl Delta {
     }
 
     /// Returns the original `Delta` rotated 90 degrees to the left.
-    pub(crate) fn rotate_left(&self) -> Self {
+    pub(crate) fn rotate_left(self) -> Self {
         Delta {
             dx: self.dy,
             dy: -self.dx,
@@ -70,7 +70,7 @@ impl Delta {
     }
 
     /// Returns the original `Delta` rotated 90 degrees to the right.
-    pub(crate) fn rotate_right(&self) -> Self {
+    pub(crate) fn rotate_right(self) -> Self {
         Delta {
             dx: -self.dy,
             dy: self.dx,
