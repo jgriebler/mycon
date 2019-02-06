@@ -118,11 +118,11 @@ fn run() -> i32 {
         prog.run()
     };
 
-    start.map(|t| {
+    if let Some(t) = start {
         let elapsed = t.elapsed();
         let _ = io::stdout().flush();
         print_info!("executed in {:?}", elapsed);
-    });
+    }
 
     exit
 }

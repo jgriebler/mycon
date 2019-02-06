@@ -22,8 +22,8 @@ use crate::data::{Value, Point, Delta};
 use crate::program::Context;
 use super::Ip;
 
-const HANDPRINT: i32 = 0x4a474d59;
-const VERSION: &'static str = env!("CARGO_PKG_VERSION");
+const HANDPRINT: i32 = 0x4a47_4d59;
+const VERSION: &str = env!("CARGO_PKG_VERSION");
 
 impl Ip {
     // Control flow
@@ -627,8 +627,8 @@ impl Ip {
         num_cells += 2;
         self.push(0);
         self.push(0);
-        for ref a in io.cmd_args() {
-            num_cells += self.push_string(a);
+        for a in io.cmd_args() {
+            num_cells += self.push_string(&a);
         }
 
         // Size of each stack
@@ -649,7 +649,7 @@ impl Ip {
 
         // Date
         num_cells += 1;
-        self.push((dt.year() - 1900 << 16) + ((dt.month() << 8) + dt.day()) as i32);
+        self.push(((dt.year() - 1900) << 16) + ((dt.month() << 8) + dt.day()) as i32);
 
         let (x0, y0) = space.min();
         let (x1, y1) = space.max();

@@ -228,10 +228,8 @@ impl<'env> Config<'env> {
             return None;
         }
 
-        if self.input_buffer.is_empty() {
-            if self.input.read_line(&mut self.input_buffer).is_err() {
-                return None;
-            }
+        if self.input_buffer.is_empty() && self.input.read_line(&mut self.input_buffer).is_err() {
+            return None;
         }
 
         let mut found = false;
@@ -241,9 +239,9 @@ impl<'env> Config<'env> {
             if (b as char).is_digit(10) {
                 found = true;
                 ret *= 10;
-                ret += (b - '0' as u8) as i32;
+                ret += i32::from(b - b'0');
             } else if found {
-                if b == '\n' as u8 {
+                if b == b'\n' {
                     stop = i + 1;
                 } else {
                     stop = i;
@@ -266,10 +264,8 @@ impl<'env> Config<'env> {
             return None;
         }
 
-        if self.input_buffer.is_empty() {
-            if self.input.read_line(&mut self.input_buffer).is_err() {
-                return None;
-            }
+        if self.input_buffer.is_empty() && self.input.read_line(&mut self.input_buffer).is_err() {
+            return None;
         }
 
         let c = self.input_buffer.chars().nth(0).unwrap();
