@@ -217,7 +217,16 @@ impl Space {
                 }
             };
 
-            let (_, n) = self.tree.set_line(y, &mut line.chars().filter_map(f));
+            let mut n = 0;
+
+            for (x, v) in line.chars().filter_map(f).enumerate() {
+                self.tree.set(x as i32, y, v);
+
+                if v != SPACE {
+                    n += 1;
+                }
+            }
+
             self.bounds.set_y(y, n);
         }
 
