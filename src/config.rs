@@ -29,57 +29,6 @@ use crate::data::stack::StackStack;
 use crate::data::Point;
 use crate::data::Value;
 
-enum Input<'a> {
-    Owned(Box<dyn BufRead>),
-    Borrowed(&'a mut dyn BufRead),
-}
-
-impl<'a> Read for Input<'a> {
-    fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
-        match self {
-            Input::Owned(r)    => r.read(buf),
-            Input::Borrowed(r) => r.read(buf),
-        }
-    }
-}
-
-impl<'a> BufRead for Input<'a> {
-    fn fill_buf(&mut self) -> io::Result<&[u8]> {
-        match self {
-            Input::Owned(r)    => r.fill_buf(),
-            Input::Borrowed(r) => r.fill_buf(),
-        }
-    }
-
-    fn consume(&mut self, amt: usize) {
-        match self {
-            Input::Owned(r)    => r.consume(amt),
-            Input::Borrowed(r) => r.consume(amt),
-        }
-    }
-}
-
-enum Output<'a> {
-    Owned(Box<dyn Write>),
-    Borrowed(&'a mut dyn Write),
-}
-
-impl<'a> Write for Output<'a> {
-    fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
-        match self {
-            Output::Owned(w)    => w.write(buf),
-            Output::Borrowed(w) => w.write(buf),
-        }
-    }
-
-    fn flush(&mut self) -> io::Result<()> {
-        match self {
-            Output::Owned(w)    => w.flush(),
-            Output::Borrowed(w) => w.flush(),
-        }
-    }
-}
-
 /// Specifies how to react when the program tries to access a file.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum FileView {
@@ -110,9 +59,9 @@ pub struct Config<'env> {
     trace: bool,
     fmt_trace: Box<dyn FnMut(Trace)>,
     sleep: Duration,
-    input: Input<'env>,
+    input: Box<dyn BufRead + 'env>,
     input_buffer: String,
-    output: Output<'env>,
+    output: Box<dyn Write + 'env>,
     file_view: FileView,
     exec_action: ExecAction,
 }
@@ -126,9 +75,9 @@ impl<'env> Config<'env> {
                 eprintln!("{} at {}: {}, {}", trace.id, trace.position, trace.command, trace.stacks);
             }),
             sleep: Duration::new(0, 0),
-            input: Input::Owned(Box::new(BufReader::new(io::stdin()))),
+            input: Box::new(BufReader::new(io::stdin())),
             input_buffer: String::new(),
-            output: Output::Owned(Box::new(io::stdout())),
+            output: Box::new(io::stdout()),
             file_view: FileView::Real,
             exec_action: ExecAction::Real,
         }
@@ -159,17 +108,17 @@ impl<'env> Config<'env> {
     }
 
     /// Sets the input stream of the `Config`.
-    pub fn input(self, input: &'env mut impl BufRead) -> Self {
+    pub fn input(self, input: impl BufRead + 'env) -> Self {
         Self {
-            input: Input::Borrowed(input),
+            input: Box::new(input),
             ..self
         }
     }
 
     /// Sets the output stream of the `Config`.
-    pub fn output(self, output: &'env mut impl Write) -> Self {
+    pub fn output(self, output: impl Write + 'env) -> Self {
         Self {
-            output: Output::Borrowed(output),
+            output: Box::new(output),
             ..self
         }
     }
