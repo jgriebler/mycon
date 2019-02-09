@@ -76,6 +76,13 @@ impl<'env> Program<'env> {
         self
     }
 
+    /// Returns the exit status if the `Program` has finished.
+    ///
+    /// If the `Program` is not yet done, `None` is returned.
+    pub fn exit_status(&self) -> Option<Value> {
+        self.ip_data.exit
+    }
+
     /// Executes the current instruction of a single instruction pointer.
     ///
     /// The IP will execute a single 'tick' as defined by the Funge-98
@@ -86,8 +93,6 @@ impl<'env> Program<'env> {
     pub fn step_single(&mut self) {
         self.ip_data.ips[self.ip_data.current].tick(&mut self.context);
         self.context.commit_changes(&mut self.ip_data);
-
-        self.context.config.do_sleep();
     }
 
     /// Executes the current instruction of every active instruction pointer.

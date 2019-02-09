@@ -22,8 +22,6 @@ use std::fs::File;
 use std::io;
 use std::io::{BufRead, BufReader, Read, Write};
 use std::process::Command;
-use std::thread;
-use std::time::Duration;
 
 use crate::data::stack::StackStack;
 use crate::data::Point;
@@ -58,7 +56,6 @@ pub enum ExecAction {
 pub struct Config<'env> {
     trace: bool,
     fmt_trace: Box<dyn FnMut(Trace)>,
-    sleep: Duration,
     input: Box<dyn BufRead + 'env>,
     input_buffer: String,
     output: Box<dyn Write + 'env>,
@@ -74,7 +71,6 @@ impl<'env> Config<'env> {
             fmt_trace: Box::new(|trace| {
                 eprintln!("{} at {}: {}, {}", trace.id, trace.position, trace.command, trace.stacks);
             }),
-            sleep: Duration::new(0, 0),
             input: Box::new(BufReader::new(io::stdin())),
             input_buffer: String::new(),
             output: Box::new(io::stdout()),
@@ -95,14 +91,6 @@ impl<'env> Config<'env> {
     pub fn trace_format(self, fmt_trace: impl FnMut(Trace) + 'static) -> Self {
         Self {
             fmt_trace: Box::new(fmt_trace),
-            ..self
-        }
-    }
-
-    /// Sets the duration to sleep after every instruction.
-    pub fn sleep(self, sleep: Duration) -> Self {
-        Self {
-            sleep,
             ..self
         }
     }
@@ -148,11 +136,6 @@ impl<'env> Config<'env> {
         if self.trace {
             (self.fmt_trace)(trace);
         }
-    }
-
-    /// Sleeps for the duration specified in its `sleep` field.
-    pub(crate) fn do_sleep(&self) {
-        thread::sleep(self.sleep);
     }
 
     /// Tries to write a number to the `Config`'s output stream.

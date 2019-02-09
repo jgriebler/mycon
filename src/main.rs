@@ -24,6 +24,7 @@ use std::fs::File;
 use std::io::{self, Read, Write};
 use std::process;
 use std::time::{Duration, Instant};
+use std::thread;
 
 use ansi_term::Colour;
 use clap::{App, Arg};
@@ -59,7 +60,7 @@ fn run() -> i32 {
              .short("v")
              .long("verbose"))
         .arg(Arg::with_name("SLEEP")
-             .help("duration to sleep after each command, in milliseconds")
+             .help("duration to sleep after each tick, in milliseconds")
              .short("s")
              .long("sleep")
              .takes_value(true)
@@ -102,10 +103,6 @@ fn run() -> i32 {
             });
     }
 
-    if let Some(n) = matches.value_of("SLEEP").and_then(|s| s.parse::<u64>().ok()) {
-        config = config.sleep(Duration::from_millis(n));
-    }
-
     let start = if matches.is_present("TIME") {
         Some(Instant::now())
     } else {
@@ -115,7 +112,21 @@ fn run() -> i32 {
     let exit = {
         let mut prog = Program::read(&code).config(config);
 
-        prog.run()
+        if let Some(n) = matches.value_of("SLEEP").and_then(|s| s.parse::<u64>().ok()) {
+            let dur = Duration::from_millis(n);
+
+            loop {
+                prog.step_all();
+
+                if let Some(exit) = prog.exit_status() {
+                    break exit;
+                }
+
+                thread::sleep(dur);
+            }
+        } else {
+            prog.run()
+        }
     };
 
     if let Some(t) = start {
