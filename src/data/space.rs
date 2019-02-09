@@ -205,30 +205,27 @@ impl Space {
     fn set_line(&mut self, y: i32, line: &str) -> u32 {
         let mut l = 0;
 
-        // scope necessary because of the borrow of l
-        {
-            let f = |c| {
-                let v = c as i32;
-                if v == 12 {
-                    None
-                } else {
-                    l += 1;
-                    Some(v)
-                }
-            };
-
-            let mut n = 0;
-
-            for (x, v) in line.chars().filter_map(f).enumerate() {
-                self.tree.set(x as i32, y, v);
-
-                if v != SPACE {
-                    n += 1;
-                }
+        let f = |c| {
+            let v = c as i32;
+            if v == 12 {
+                None
+            } else {
+                l += 1;
+                Some(v)
             }
+        };
 
-            self.bounds.set_y(y, n);
+        let mut n = 0;
+
+        for (x, v) in line.chars().filter_map(f).enumerate() {
+            self.tree.set(x as i32, y, v);
+
+            if v != SPACE {
+                n += 1;
+            }
         }
+
+        self.bounds.set_y(y, n);
 
         l
     }

@@ -133,7 +133,7 @@ impl StackStack {
                 break;
             }
 
-            if let Some(c) = ::std::char::from_u32(v as u32) {
+            if let Some(c) = std::char::from_u32(v as u32) {
                 s.push(c);
             } else {
                 return None;

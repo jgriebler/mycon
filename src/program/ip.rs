@@ -93,7 +93,7 @@ impl Ip {
             return;
         }
 
-        if let Some(c) = ::std::char::from_u32(v as u32) {
+        if let Some(c) = std::char::from_u32(v as u32) {
             self.execute(ctx, c);
         } else {
             self.reflect();

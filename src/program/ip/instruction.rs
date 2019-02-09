@@ -374,7 +374,7 @@ impl Ip {
     pub(super) fn output_char(&mut self, ctx: &mut Context) {
         let v = self.pop();
 
-        if let Some(c) = ::std::char::from_u32(v as u32) {
+        if let Some(c) = std::char::from_u32(v as u32) {
             if !ctx.config.write_char(c) {
                 self.reflect();
             }
@@ -436,7 +436,7 @@ impl Ip {
                             newlines = 0;
                         }
 
-                        if let Some(c) = ::std::char::from_u32(v as u32) {
+                        if let Some(c) = std::char::from_u32(v as u32) {
                             s.push(c);
                         } else {
                             self.reflect();
@@ -584,7 +584,7 @@ impl Ip {
         }
 
         let v = self.peek_command(&ctx.space);
-        if let Some(c) = ::std::char::from_u32(v as u32) {
+        if let Some(c) = std::char::from_u32(v as u32) {
             if !is_idempotent(c) {
                 for _ in 1..n {
                     self.execute(ctx, c);

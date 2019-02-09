@@ -15,11 +15,6 @@
 // You should have received a copy of the GNU General Public License
 // along with mycon.  If not, see <https://www.gnu.org/licenses/>.
 
-extern crate ansi_term;
-#[macro_use]
-extern crate clap;
-extern crate mycon;
-
 use std::fs::File;
 use std::io::{self, Read, Write};
 use std::process;
@@ -27,7 +22,7 @@ use std::time::{Duration, Instant};
 use std::thread;
 
 use ansi_term::Colour;
-use clap::{App, Arg};
+use clap::{App, Arg, crate_version};
 
 use mycon::*;
 
