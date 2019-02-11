@@ -39,6 +39,8 @@ macro_rules! print_info {
 }
 
 fn run() -> i32 {
+    let t0 = Instant::now();
+
     let matches = App::new("mycon")
         .version(crate_version!())
         .author("Johannes M. Griebler <johannes.griebler@gmail.com>")
@@ -61,6 +63,13 @@ fn run() -> i32 {
              .takes_value(true)
              .value_name("time"))
         .get_matches();
+
+    let mut timing = if matches.is_present("TIME") {
+        let t1 = Instant::now();
+        Some((t0, t1))
+    } else {
+        None
+    };
 
     let path = matches.value_of("SOURCE_FILE").unwrap();
 
@@ -98,15 +107,18 @@ fn run() -> i32 {
             });
     }
 
-    let start = if matches.is_present("TIME") {
-        Some(Instant::now())
-    } else {
-        None
-    };
+    let mut prog = Program::read(&code).config(config);
+
+    if let Some((t0, t1)) = timing {
+        let t2 = Instant::now();
+        let elapsed = t2.duration_since(t1);
+
+        print_info!("loaded program in {:?}", elapsed);
+
+        timing = Some((t0, t2));
+    }
 
     let exit = {
-        let mut prog = Program::read(&code).config(config);
-
         if let Some(n) = matches.value_of("SLEEP").and_then(|s| s.parse::<u64>().ok()) {
             let dur = Duration::from_millis(n);
 
@@ -124,10 +136,13 @@ fn run() -> i32 {
         }
     };
 
-    if let Some(t) = start {
-        let elapsed = t.elapsed();
+    if let Some((t0, t2)) = timing {
+        let exec = t2.elapsed();
         let _ = io::stdout().flush();
-        print_info!("executed in {:?}", elapsed);
+        let total = t0.elapsed();
+
+        print_info!("executed in {:?}", exec);
+        print_info!("total time {:?}", total);
     }
 
     exit
