@@ -34,6 +34,7 @@ pub(super) struct Ip {
     storage: Point,
     stacks: StackStack,
     string: bool,
+    saw_space: bool,
 }
 
 impl Ip {
@@ -48,11 +49,12 @@ impl Ip {
     pub(super) fn new() -> Ip {
         Ip {
             id: 0,
-            position: Point { x: 0, y: 0 },
+            position: Point { x: -1, y: 0 },
             delta: Delta { dx: 1, dy: 0 },
             storage: Point { x: 0, y: 0 },
             stacks: StackStack::new(),
             string: false,
+            saw_space: false,
         }
     }
 
@@ -70,8 +72,12 @@ impl Ip {
 
     /// Executes a single command and moves the `Ip` to the next.
     pub(super) fn tick(&mut self, ctx: &mut Context) {
+        self.step(&ctx.space);
+
         if !self.string {
             self.find_command(&ctx.space);
+        } else if self.saw_space {
+            self.skip_space(&ctx.space);
         }
 
         let v = self.get_current(&ctx.space);
@@ -79,16 +85,11 @@ impl Ip {
         if self.string {
             if v == 34 {
                 self.string = false;
-                self.step(&ctx.space);
-                self.find_command(&ctx.space);
             } else {
                 self.push(v);
-                self.step(&ctx.space);
-
-                if v == 32 {
-                    self.skip_space(&ctx.space);
-                }
             }
+
+            self.saw_space = v == 32;
 
             return;
         }
@@ -97,12 +98,6 @@ impl Ip {
             self.execute(ctx, c);
         } else {
             self.reflect();
-        }
-
-        self.step(&ctx.space);
-
-        if !self.string {
-            self.find_command(&ctx.space);
         }
     }
 

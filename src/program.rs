@@ -36,8 +36,7 @@ pub struct Program<'env> {
 
 impl<'env> Program<'env> {
     fn init(space: Space, config: Config<'env>) -> Self {
-        let mut ip = Ip::new();
-        ip.find_command(&space);
+        let ip = Ip::new();
 
         let context = Context {
             space,

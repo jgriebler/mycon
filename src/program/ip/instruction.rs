@@ -522,9 +522,6 @@ impl Ip {
         let mut ip = self.clone();
 
         ip.reflect();
-        ip.step(&ctx.space);
-        ip.find_command(&ctx.space);
-
         ctx.control.add_ip(ip);
     }
 
@@ -578,7 +575,6 @@ impl Ip {
         if n <= 0 {
             if n == 0 {
                 self.step(&ctx.space);
-                self.find_command(&ctx.space);
             }
             return;
         }
