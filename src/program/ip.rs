@@ -110,6 +110,8 @@ impl Ip {
 
     /// Executes a single command, without moving the `Ip`'s afterwards.
     fn execute(&mut self, ctx: &mut Context, command: char) {
+        let position = self.position;
+
         match command {
             ' '         => panic!("attempted to execute ' '"),
             '!'         => self.negate(),
@@ -184,7 +186,7 @@ impl Ip {
             _           => self.reflect(),
         }
 
-        ctx.config.do_trace(Trace::new(self.id, command, self.position, &self.stacks));
+        ctx.config.do_trace(Trace::new(self.id, command, position, &self.stacks));
     }
 
     /// Sets the `Ip`'s [`Delta`] to a new value.
