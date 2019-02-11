@@ -86,7 +86,7 @@ fn run() -> i32 {
 
     let mut config = Config::new();
 
-    if matches.is_present("TRACE") {
+    if matches.is_present("VERBOSITY") {
         config = config
             .trace(true)
             .trace_format(|trace| {
